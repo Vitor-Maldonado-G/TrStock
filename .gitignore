@@ -1,0 +1,16 @@
+# dependências (recriadas com "npm install")
+node_modules
+
+# build de produção
+dist
+
+# variáveis de ambiente (contém chaves — nunca subir pro GitHub)
+.env
+.env.local
+
+# arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*

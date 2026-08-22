@@ -1,0 +1,43 @@
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap");
+
+:root {
+  /* Cores da TR: preto predominante, laranja e amarelo secundários */
+  --tr-black: #141414;
+  --tr-black-soft: #232323;
+  --tr-orange: #F2762E;
+  --tr-orange-bg: #FCE3D2;
+  --tr-yellow: #F5B729;
+  --tr-yellow-bg: #FCEFD0;
+  --tr-paper: #FAFAF8;
+  --tr-line: #E4E1DA;
+  --tr-ink-soft: #6B6862;
+  --tr-alert: #C1272D;
+  --tr-alert-bg: #F7E2E0;
+  --tr-ok: #3E7D53;
+  --tr-ok-bg: #E1EBE1;
+
+  --font-display: "Oswald", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--tr-paper);
+  color: var(--tr-black);
+  /* evita o "elastic scroll" e a barra de endereço reaparecendo em modo PWA standalone */
+  overscroll-behavior: none;
+}
+
+button, input, textarea, select {
+  font-family: inherit;
+}

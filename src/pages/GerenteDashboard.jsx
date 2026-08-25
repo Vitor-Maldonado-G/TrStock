@@ -41,7 +41,10 @@ export default function GerenteDashboard() {
       // pega tudo ordenado por mais recente; a contagem mais recente de cada
       // produto é a primeira ocorrência do product_id nessa lista já ordenada
       // (equivalente ao DISTINCT ON do SCHEMA.md, feito no cliente)
-      supabase.from("counts").select("id, product_id, quantity, note, counted_at").order("counted_at", { ascending: false }),
+      supabase
+      .from("counts")
+      .select("id, product_id, quantity, note, counted_at, profiles(name)")
+      .order("counted_at", { ascending: false }),
     ]);
 
     if (catError || prodError || countsError) {
@@ -149,7 +152,9 @@ export default function GerenteDashboard() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 15 }}>{p.name}</div>
                           <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)" }}>
-                            {latest ? `contado ${timeAgo(latest.counted_at)}` : "sem contagem ainda"}
+                            {latest
+                              ? `contado ${timeAgo(latest.counted_at)}${latest.profiles?.name ? ` por ${latest.profiles.name}` : ""}`
+                              : "sem contagem ainda"}
                           </div>
                         </div>
 

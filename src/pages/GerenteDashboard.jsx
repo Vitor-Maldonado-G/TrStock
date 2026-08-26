@@ -81,7 +81,10 @@ export default function GerenteDashboard() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={headerStyle}>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>PAINEL</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <img src="/logo.png" alt="TR Stock" style={{ width: 24, height: 24 }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>PAINEL</span>
+        </div>
         <button onClick={signOut} style={logoutBtnStyle}>
           <LogOut size={16} /> sair
         </button>

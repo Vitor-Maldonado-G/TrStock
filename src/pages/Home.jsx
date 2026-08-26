@@ -39,7 +39,10 @@ export default function Home() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={headerStyle}>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 1 }}>TR STOCK</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <img src="/logo.png" alt="TR Stock" style={{ width: 28, height: 28 }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 1 }}>TR STOCK</span>
+        </div>
         <button onClick={signOut} style={logoutBtnStyle}>
           <LogOut size={16} /> sair
         </button>

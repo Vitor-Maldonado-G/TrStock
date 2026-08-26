@@ -41,14 +41,9 @@ export default function Login() {
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40 }}>
-        <div
-          style={{
-            width: 56, height: 56, borderRadius: 14, background: "var(--tr-black)",
-            display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12,
-          }}
-        >
-          <span style={{ color: "var(--tr-yellow)", fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700 }}>TR</span>
-        </div>
+        
+        <img src="/logo.png" alt="TR Stock" style={{ width: 96, height: 96, marginBottom: 12 }} />
+        
         <div style={{ fontFamily: "var(--font-display)", fontSize: 26, letterSpacing: 1 }}>TR STOCK</div>
         <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--tr-ink-soft)" }}>controle de estoque</div>
       </div>

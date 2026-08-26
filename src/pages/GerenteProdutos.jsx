@@ -66,9 +66,12 @@ export default function GerenteProdutos() {
         <button onClick={() => (formState ? setFormState(null) : navigate("/gerente"))} style={iconBtnStyle}>
           <ArrowLeft size={20} color="#fff" />
         </button>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>
-          {formState ? (formState.id ? "EDITAR PRODUTO" : "NOVO PRODUTO") : "PRODUTOS"}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <img src="/logo.png" alt="TR Stock" style={{ width: 24, height: 24 }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>
+            {formState ? (formState.id ? "EDITAR PRODUTO" : "NOVO PRODUTO") : "PRODUTOS"}
+          </span>
+        </div>
         {formState ? (
           <div style={{ width: 20 }} />
         ) : (

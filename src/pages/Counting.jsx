@@ -106,9 +106,12 @@ export default function Counting() {
         <button onClick={() => navigate("/")} style={iconBtnStyle}>
           <ArrowLeft size={20} color="#fff" />
         </button>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>
-          {categoryName ? categoryName.toUpperCase() : "CONTAGEM"}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <img src="/logo.png" alt="TR Stock" style={{ width: 24, height: 24 }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>
+            {categoryName ? categoryName.toUpperCase() : "CONTAGEM"}
+          </span>
+        </div>
         <div style={{ width: 36 }} />
       </div>
 

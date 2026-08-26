@@ -5,7 +5,7 @@ import { useAuth } from "../lib/AuthContext";
 import { ArrowLeft, LogOut, Plus, Pencil, Eye, EyeOff } from "lucide-react";
 
 const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos"];
-const UNIT_OPTIONS = ["unidades", "kg", "litros", "pacotes", "rolos"];
+const UNIT_OPTIONS = ["unidades", "kg", "litros", "pacotes", "rolos", "peças"];
 
 export default function GerenteProdutos() {
   const { signOut } = useAuth();

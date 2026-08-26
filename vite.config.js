@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icons/icon-192.png", "icons/icon-512.png"],
+      includeAssets: ["icons/icon-192.png", "icons/icon-512.png", "icons/icon-512-maskable.png"],
       manifest: {
         name: "TR Stock",
         short_name: "TR Stock",
@@ -32,7 +32,7 @@ export default defineConfig({
             type: "image/png",
           },
           {
-            src: "icons/icon-512.png",
+            src: "icons/icon-512-maskable.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

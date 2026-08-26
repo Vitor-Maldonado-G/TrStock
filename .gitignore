@@ -14,3 +14,6 @@ Thumbs.db
 
 # logs
 npm-debug.log*
+
+supabase/.temp/
+.vscode/

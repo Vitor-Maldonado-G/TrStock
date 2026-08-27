@@ -32,12 +32,17 @@ export function AuthProvider({ children }) {
   async function loadProfile(userId) {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, role")
+      .select("id, name, role, active")
       .eq("id", userId)
       .single();
 
     if (error) {
       console.error("Erro ao carregar perfil:", error.message);
+      setProfile(null);
+    } else if (data.active === false) {
+      // conta foi desativada enquanto a sessão ainda estava ativa (ex: gerente
+      // desativou o funcionário com o app dele já aberto) — desloga na hora
+      await supabase.auth.signOut();
       setProfile(null);
     } else {
       setProfile(data);
@@ -47,7 +52,25 @@ export function AuthProvider({ children }) {
 
   async function signIn(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    if (error) return { error };
+
+    // confere se a conta não foi desativada pelo gerente antes de deixar entrar
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    if (userId) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("active")
+        .eq("id", userId)
+        .single();
+
+      if (profileData && profileData.active === false) {
+        await supabase.auth.signOut();
+        return { error: { message: "Essa conta foi desativada. Fale com o gerente." } };
+      }
+    }
+
+    return { error: null };
   }
 
   async function signOut() {

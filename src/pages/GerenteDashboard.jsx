@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
-import { LogOut, Package, Users, MessageCircle } from "lucide-react";
+import { LogOut, Package, Users, History, MessageCircle } from "lucide-react";
 
 const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos"];
 
@@ -90,12 +90,15 @@ export default function GerenteDashboard() {
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 10, padding: "16px 20px 0" }}>
+      <div style={{ display: "flex", gap: 6, padding: "16px 20px 0" }}>
         <button onClick={() => navigate("/gerente/produtos")} style={navBtnStyle}>
           <Package size={16} /> produtos
         </button>
         <button onClick={() => navigate("/gerente/funcionarios")} style={navBtnStyle}>
           <Users size={16} /> funcionários
+        </button>
+        <button onClick={() => navigate("/gerente/historico")} style={navBtnStyle}>
+          <History size={16} /> histórico
         </button>
       </div>
 
@@ -242,7 +245,7 @@ const navBtnStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 6,
+  gap: 4,
   padding: "10px 0",
   borderRadius: 8,
   border: "1px solid var(--tr-line)",
@@ -250,8 +253,9 @@ const navBtnStyle = {
   color: "var(--tr-black)",
   fontFamily: "var(--font-body)",
   fontWeight: 600,
-  fontSize: 13,
+  fontSize: 11,
   cursor: "pointer",
+  whiteSpace: "nowrap",
 };
 
 const chipStyle = {

@@ -9,6 +9,7 @@ import Counting from "./pages/Counting";
 import GerenteDashboard from "./pages/GerenteDashboard";
 import GerenteProdutos from "./pages/GerenteProdutos";
 import GerenteFuncionarios from "./pages/GerenteFuncionarios";
+import GerenteHistorico from "./pages/GerenteHistorico";
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/gerente" element={<ProtectedRoute role="gerente"><GerenteDashboard /></ProtectedRoute>} />
           <Route path="/gerente/produtos" element={<ProtectedRoute role="gerente"><GerenteProdutos /></ProtectedRoute>} />
           <Route path="/gerente/funcionarios" element={<ProtectedRoute role="gerente"><GerenteFuncionarios /></ProtectedRoute>} />
+          <Route path="/gerente/historico" element={<ProtectedRoute role="gerente"><GerenteHistorico /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

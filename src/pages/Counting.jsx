@@ -11,6 +11,7 @@ export default function Counting() {
 
   const [categoryName, setCategoryName] = useState("");
   const [products, setProducts] = useState([]);
+  const [todayByProduct, setTodayByProduct] = useState({}); // product_id -> última contagem de hoje
   const [entries, setEntries] = useState({}); // product_id -> { quantity, note, noteOpen }
 
   const [loading, setLoading] = useState(true);
@@ -50,9 +51,35 @@ export default function Counting() {
 
     if (prodError) {
       setError("Não foi possível carregar os produtos.");
-    } else {
-      setProducts(prodData);
+      setLoading(false);
+      return;
     }
+
+    setProducts(prodData);
+
+    // busca se algum desses produtos já foi contado hoje, pra avisar o
+    // funcionário e evitar contagem duplicada sem ele perceber
+    const productIds = prodData.map((p) => p.id);
+    if (productIds.length > 0) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const { data: todayCounts } = await supabase
+        .from("counts")
+        .select("product_id, quantity, counted_at, profiles(name)")
+        .in("product_id", productIds)
+        .gte("counted_at", todayStart.toISOString())
+        .order("counted_at", { ascending: false });
+
+      if (todayCounts) {
+        const latest = {};
+        for (const c of todayCounts) {
+          if (!(c.product_id in latest)) latest[c.product_id] = c;
+        }
+        setTodayByProduct(latest);
+      }
+    }
+
     setLoading(false);
   }
 
@@ -135,6 +162,16 @@ export default function Counting() {
                   <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)" }}>
                     {p.unit} · mín. {p.min_quantity}
                   </div>
+                  {todayByProduct[p.id] && (
+                    <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--tr-orange)", marginTop: 2 }}>
+                      já contado hoje: {todayByProduct[p.id].quantity} {p.unit} às{" "}
+                      {new Date(todayByProduct[p.id].counted_at).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {todayByProduct[p.id].profiles?.name ? ` por ${todayByProduct[p.id].profiles.name}` : ""}
+                    </div>
+                  )}
                 </div>
 
                 <button

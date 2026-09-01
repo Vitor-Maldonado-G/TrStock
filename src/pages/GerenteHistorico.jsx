@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Trash2 } from "lucide-react";
 
 const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos"];
 
@@ -51,6 +51,9 @@ export default function GerenteHistorico() {
   const [fromDate, setFromDate] = useState(() => computeRange("7d").from);
   const [toDate, setToDate] = useState(() => computeRange("7d").to);
   const [openNoteId, setOpenNoteId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null); // entry aguardando confirmação
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     load();
@@ -101,6 +104,24 @@ export default function GerenteHistorico() {
     setQuickRange(null); // sai do modo "rápido" assim que mexe manualmente
     if (which === "from") setFromDate(value);
     else setToDate(value);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError("");
+
+    const { error: deleteErr } = await supabase.from("counts").delete().eq("id", deleteTarget.id);
+
+    if (deleteErr) {
+      setDeleteError("Não foi possível apagar. " + deleteErr.message);
+      setDeleting(false);
+      return;
+    }
+
+    setDeleting(false);
+    setDeleteTarget(null);
+    load();
   }
 
   const filteredEntries = entries.filter((e) => {
@@ -230,6 +251,16 @@ export default function GerenteHistorico() {
                         <div style={quantityBadgeStyle}>
                           {entry.quantity} {entry.products?.unit || ""}
                         </div>
+                        <button
+                          onClick={() => {
+                            setDeleteError("");
+                            setDeleteTarget(entry);
+                          }}
+                          style={noteIconBtnStyle}
+                          title="apagar contagem"
+                        >
+                          <Trash2 size={16} color="var(--tr-ink-soft)" />
+                        </button>
                       </div>
                     </div>
 
@@ -247,6 +278,45 @@ export default function GerenteHistorico() {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <div style={overlayStyle} onClick={() => !deleting && setDeleteTarget(null)}>
+          <div style={confirmCardStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 16, marginBottom: 8 }}>
+              Apagar essa contagem?
+            </div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--tr-ink-soft)", marginBottom: 16 }}>
+              {deleteTarget.products?.name || "produto"} — {deleteTarget.quantity} {deleteTarget.products?.unit || ""}
+              {deleteTarget.profiles?.name ? ` · contado por ${deleteTarget.profiles.name}` : ""}
+              <br />
+              Essa ação não pode ser desfeita.
+            </div>
+
+            {deleteError && (
+              <div style={{ color: "var(--tr-alert)", fontSize: 13, fontFamily: "var(--font-body)", marginBottom: 12 }}>
+                {deleteError}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                style={cancelBtnStyle}
+              >
+                cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                style={{ ...confirmDeleteBtnStyle, opacity: deleting ? 0.6 : 1 }}
+              >
+                {deleting ? "apagando…" : "apagar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -349,4 +419,49 @@ const noteBoxStyle = {
   fontFamily: "var(--font-body)",
   fontSize: 13,
   color: "var(--tr-black)",
+};
+
+const overlayStyle = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0, 0, 0, 0.5)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 20,
+  zIndex: 50,
+};
+
+const confirmCardStyle = {
+  background: "#fff",
+  borderRadius: 12,
+  padding: 20,
+  width: "100%",
+  maxWidth: 360,
+};
+
+const cancelBtnStyle = {
+  flex: 1,
+  padding: "12px 0",
+  borderRadius: 8,
+  border: "1px solid var(--tr-line)",
+  background: "#fff",
+  color: "var(--tr-black)",
+  fontFamily: "var(--font-body)",
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
+};
+
+const confirmDeleteBtnStyle = {
+  flex: 1,
+  padding: "12px 0",
+  borderRadius: 8,
+  border: "none",
+  background: "var(--tr-alert)",
+  color: "#fff",
+  fontFamily: "var(--font-body)",
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
 };

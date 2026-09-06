@@ -37,7 +37,13 @@ export function AuthProvider({ children }) {
       .single();
 
     if (error) {
+      // qualquer falha ao carregar o perfil (token expirado, erro de rede,
+      // linha removida, etc) precisa deslogar de verdade — se só limpar o
+      // profile e manter a session, o ProtectedRoute fica preso num loop de
+      // redirecionamento (nenhuma rota bate o papel de um profile nulo) e a
+      // tela trava em branco até a pessoa limpar os dados do navegador na mão
       console.error("Erro ao carregar perfil:", error.message);
+      await supabase.auth.signOut();
       setProfile(null);
     } else if (data.active === false) {
       // conta foi desativada enquanto a sessão ainda estava ativa (ex: gerente

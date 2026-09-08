@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, X } from "lucide-react";
 
 export default function Counting() {
   const { categoria } = useParams();
@@ -191,6 +191,16 @@ export default function Counting() {
                   onChange={(e) => updateEntry(p.id, { quantity: e.target.value })}
                   style={quantityInputStyle}
                 />
+
+                {entry.quantity !== "" && (
+                  <button
+                    onClick={() => updateEntry(p.id, { quantity: "" })}
+                    style={clearBtnStyle}
+                    title="limpar (não contar este item)"
+                  >
+                    <X size={14} color="var(--tr-ink-soft)" />
+                  </button>
+                )}
               </div>
 
               {entry.noteOpen && (
@@ -282,6 +292,15 @@ const quantityInputStyle = {
   fontSize: 14,
   textAlign: "center",
   outline: "none",
+  flexShrink: 0,
+};
+
+const clearBtnStyle = {
+  background: "none",
+  border: "none",
+  padding: 4,
+  cursor: "pointer",
+  display: "flex",
   flexShrink: 0,
 };
 

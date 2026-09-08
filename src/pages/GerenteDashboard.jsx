@@ -17,6 +17,7 @@ export default function GerenteDashboard() {
   const [error, setError] = useState("");
 
   const [filterSlug, setFilterSlug] = useState("todos");
+  const [onlyBelowMin, setOnlyBelowMin] = useState(false);
   const [openNoteId, setOpenNoteId] = useState(null);
 
   useEffect(() => {
@@ -38,13 +39,10 @@ export default function GerenteDashboard() {
         .select("id, name, unit, min_quantity, active, product_categories(category_id)")
         .eq("active", true)
         .order("name"),
-      // pega tudo ordenado por mais recente; a contagem mais recente de cada
-      // produto é a primeira ocorrência do product_id nessa lista já ordenada
-      // (equivalente ao DISTINCT ON do SCHEMA.md, feito no cliente)
       supabase
-      .from("counts")
-      .select("id, product_id, quantity, note, counted_at, profiles(name)")
-      .order("counted_at", { ascending: false }),
+        .from("counts")
+        .select("id, product_id, quantity, note, counted_at, profiles(name)")
+        .order("counted_at", { ascending: false }),
     ]);
 
     if (catError || prodError || countsError) {
@@ -105,9 +103,16 @@ export default function GerenteDashboard() {
       {!loading && !error && (
         <div style={{ padding: "14px 20px 0", fontFamily: "var(--font-body)", fontSize: 13 }}>
           {belowMinCount > 0 ? (
-            <span style={{ color: "var(--tr-alert)", fontWeight: 600 }}>
+            <button
+              onClick={() => setOnlyBelowMin((v) => !v)}
+              style={{
+                ...belowMinToggleStyle,
+                ...(onlyBelowMin ? belowMinToggleActiveStyle : {}),
+              }}
+            >
               {belowMinCount} {belowMinCount === 1 ? "item abaixo" : "itens abaixo"} do mínimo
-            </span>
+              {onlyBelowMin ? " · mostrando só esses" : " · toque pra filtrar"}
+            </button>
           ) : (
             <span style={{ color: "var(--tr-ok)", fontWeight: 600 }}>tudo dentro do mínimo</span>
           )}
@@ -140,7 +145,11 @@ export default function GerenteDashboard() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 20px" }}>
         {categoriesToShow.map((cat) => {
-          const catProducts = productsForCategory(cat.id);
+          const catProducts = productsForCategory(cat.id).filter((p) => {
+            if (!onlyBelowMin) return true;
+            const latest = latestByProduct[p.id];
+            return latest && Number(latest.quantity) < Number(p.min_quantity);
+          });
           if (catProducts.length === 0) return null;
           return (
             <div key={cat.id} style={{ marginBottom: 18 }}>
@@ -194,11 +203,20 @@ export default function GerenteDashboard() {
           );
         })}
 
-        {!loading && !error && categoriesToShow.every((cat) => productsForCategory(cat.id).length === 0) && (
-          <div style={{ padding: 20, fontFamily: "var(--font-body)", fontSize: 13, color: "var(--tr-ink-soft)", textAlign: "center" }}>
-            Nenhum produto ativo nessa categoria.
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          categoriesToShow.every((cat) => {
+            const catProducts = productsForCategory(cat.id).filter((p) => {
+              if (!onlyBelowMin) return true;
+              const latest = latestByProduct[p.id];
+              return latest && Number(latest.quantity) < Number(p.min_quantity);
+            });
+            return catProducts.length === 0;
+          }) && (
+            <div style={{ padding: 20, fontFamily: "var(--font-body)", fontSize: 13, color: "var(--tr-ink-soft)", textAlign: "center" }}>
+              {onlyBelowMin ? "Nenhum item abaixo do mínimo nessa categoria." : "Nenhum produto ativo nessa categoria."}
+            </div>
+          )}
       </div>
     </div>
   );
@@ -276,6 +294,22 @@ const chipActiveStyle = {
   background: "var(--tr-black)",
   borderColor: "var(--tr-black)",
   color: "var(--tr-yellow)",
+};
+
+const belowMinToggleStyle = {
+  background: "none",
+  border: "none",
+  padding: 0,
+  color: "var(--tr-alert)",
+  fontWeight: 600,
+  fontFamily: "var(--font-body)",
+  fontSize: 13,
+  cursor: "pointer",
+  textAlign: "left",
+};
+
+const belowMinToggleActiveStyle = {
+  textDecoration: "underline",
 };
 
 const sectionTitleStyle = {

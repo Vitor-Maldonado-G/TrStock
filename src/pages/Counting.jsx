@@ -131,7 +131,7 @@ export default function Counting() {
         if (product?.count_by_photo) {
           return {
             product_id: productId,
-            quantity: null,
+            quantity: v.quantity !== "" && v.quantity !== undefined ? Number(v.quantity) : null,
             photo_url: v.photoUrl,
             note: v.note?.trim() ? v.note.trim() : null,
             counted_by: profile.id,
@@ -219,7 +219,11 @@ export default function Counting() {
                       )}
                       <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--tr-orange)" }}>
                         já contado hoje
-                        {!p.count_by_photo ? `: ${todayEntry.quantity} ${p.unit}` : ""}
+                        {!p.count_by_photo
+                          ? `: ${todayEntry.quantity} ${p.unit}`
+                          : todayEntry.quantity != null
+                          ? ` (~${todayEntry.quantity} estimado)`
+                          : ""}
                         {" às "}
                         {new Date(todayEntry.counted_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         {todayEntry.profiles?.name ? ` por ${todayEntry.profiles.name}` : ""}
@@ -269,6 +273,16 @@ export default function Counting() {
                         <X size={14} color="var(--tr-ink-soft)" />
                       </button>
                     )}
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="estimativa"
+                      value={entry.quantity}
+                      onChange={(e) => updateEntry(p.id, { quantity: e.target.value })}
+                      style={estimateInputStyle}
+                      title="número estimado (opcional)"
+                    />
                   </>
                 ) : (
                   <>
@@ -381,6 +395,18 @@ const quantityInputStyle = {
   borderRadius: 8,
   border: "1px solid var(--tr-line)",
   fontSize: 14,
+  textAlign: "center",
+  outline: "none",
+  flexShrink: 0,
+};
+
+const estimateInputStyle = {
+  width: 56,
+  height: 40,
+  padding: "0 8px",
+  borderRadius: 8,
+  border: "1px dashed var(--tr-line)",
+  fontSize: 13,
   textAlign: "center",
   outline: "none",
   flexShrink: 0,

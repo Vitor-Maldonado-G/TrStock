@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
-import { LogOut, Package, Users, History, MessageCircle } from "lucide-react";
+import { LogOut, Package, Users, History, MessageCircle, Camera } from "lucide-react";
 
 const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos"];
 
@@ -19,6 +19,7 @@ export default function GerenteDashboard() {
   const [filterSlug, setFilterSlug] = useState("todos");
   const [onlyBelowMin, setOnlyBelowMin] = useState(false);
   const [openNoteId, setOpenNoteId] = useState(null);
+  const [openPhotoId, setOpenPhotoId] = useState(null);
 
   useEffect(() => {
     load();
@@ -36,12 +37,12 @@ export default function GerenteDashboard() {
       supabase.from("categories").select("id, name, slug"),
       supabase
         .from("products")
-        .select("id, name, unit, min_quantity, active, product_categories(category_id)")
+        .select("id, name, unit, min_quantity, active, count_by_photo, product_categories(category_id)")
         .eq("active", true)
         .order("name"),
       supabase
         .from("counts")
-        .select("id, product_id, quantity, note, counted_at, profiles(name)")
+        .select("id, product_id, quantity, photo_url, note, counted_at, profiles(name)")
         .order("counted_at", { ascending: false }),
     ]);
 
@@ -70,7 +71,7 @@ export default function GerenteDashboard() {
 
   const belowMinCount = products.filter((p) => {
     const latest = latestByProduct[p.id];
-    return latest && Number(latest.quantity) < Number(p.min_quantity);
+    return latest && latest.quantity != null && Number(latest.quantity) < Number(p.min_quantity);
   }).length;
 
   const categoriesToShow =
@@ -148,7 +149,7 @@ export default function GerenteDashboard() {
           const catProducts = productsForCategory(cat.id).filter((p) => {
             if (!onlyBelowMin) return true;
             const latest = latestByProduct[p.id];
-            return latest && Number(latest.quantity) < Number(p.min_quantity);
+            return latest && latest.quantity != null && Number(latest.quantity) < Number(p.min_quantity);
           });
           if (catProducts.length === 0) return null;
           return (
@@ -157,9 +158,11 @@ export default function GerenteDashboard() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {catProducts.map((p) => {
                   const latest = latestByProduct[p.id];
-                  const belowMin = latest && Number(latest.quantity) < Number(p.min_quantity);
+                  const belowMin = latest && latest.quantity != null && Number(latest.quantity) < Number(p.min_quantity);
                   const hasNote = latest && latest.note;
                   const noteOpen = latest && openNoteId === latest.id;
+                  const hasPhoto = latest && latest.photo_url;
+                  const photoOpen = latest && openPhotoId === latest.id;
 
                   return (
                     <div key={p.id} style={rowCardStyle}>
@@ -183,18 +186,43 @@ export default function GerenteDashboard() {
                               <MessageCircle size={16} color={noteOpen ? "var(--tr-orange)" : "var(--tr-ink-soft)"} />
                             </button>
                           )}
+                          {hasPhoto && (
+                            <button
+                              onClick={() => setOpenPhotoId(photoOpen ? null : latest.id)}
+                              style={photoToggleBtnStyle}
+                              title="ver foto"
+                            >
+                              <Camera size={14} />
+                              ver foto
+                            </button>
+                          )}
                           <div
                             style={{
                               ...quantityBadgeStyle,
-                              ...(latest ? (belowMin ? belowMinStyle : okStyle) : neutralBadgeStyle),
+                              ...(latest
+                                ? latest.quantity != null
+                                  ? belowMin
+                                    ? belowMinStyle
+                                    : okStyle
+                                  : neutralBadgeStyle
+                                : neutralBadgeStyle),
                             }}
                           >
-                            {latest ? `${latest.quantity} ${p.unit}` : "—"}
+                            {latest
+                              ? latest.quantity != null
+                                ? `${latest.quantity} ${p.unit}`
+                                : "📷 só foto"
+                              : "—"}
                           </div>
                         </div>
                       </div>
 
                       {noteOpen && <div style={noteBoxStyle}>{latest.note}</div>}
+                      {photoOpen && (
+                        <div style={photoBoxStyle}>
+                          <img src={latest.photo_url} alt={`foto da contagem de ${p.name}`} style={photoImgStyle} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -209,7 +237,7 @@ export default function GerenteDashboard() {
             const catProducts = productsForCategory(cat.id).filter((p) => {
               if (!onlyBelowMin) return true;
               const latest = latestByProduct[p.id];
-              return latest && Number(latest.quantity) < Number(p.min_quantity);
+              return latest && latest.quantity != null && Number(latest.quantity) < Number(p.min_quantity);
             });
             return catProducts.length === 0;
           }) && (
@@ -334,6 +362,34 @@ const noteIconBtnStyle = {
   padding: 4,
   cursor: "pointer",
   display: "flex",
+};
+
+const photoToggleBtnStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+  background: "none",
+  border: "1px solid var(--tr-line)",
+  borderRadius: 6,
+  padding: "5px 8px",
+  cursor: "pointer",
+  fontFamily: "var(--font-body)",
+  fontSize: 11,
+  color: "var(--tr-black)",
+  whiteSpace: "nowrap",
+};
+
+const photoBoxStyle = {
+  marginTop: 8,
+};
+
+const photoImgStyle = {
+  width: "100%",
+  maxHeight: 260,
+  objectFit: "contain",
+  borderRadius: 8,
+  border: "1px solid var(--tr-line)",
+  background: "var(--tr-paper)",
 };
 
 const quantityBadgeStyle = {

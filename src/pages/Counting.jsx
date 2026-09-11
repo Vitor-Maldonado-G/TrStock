@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
-import { ArrowLeft, MessageCircle, X } from "lucide-react";
+import { ArrowLeft, MessageCircle, X, Camera } from "lucide-react";
+
+const PHOTO_BUCKET = "fotos-contagem";
 
 export default function Counting() {
   const { categoria } = useParams();
@@ -12,7 +14,7 @@ export default function Counting() {
   const [categoryName, setCategoryName] = useState("");
   const [products, setProducts] = useState([]);
   const [todayByProduct, setTodayByProduct] = useState({}); // product_id -> última contagem de hoje
-  const [entries, setEntries] = useState({}); // product_id -> { quantity, note, noteOpen }
+  const [entries, setEntries] = useState({}); // product_id -> { quantity, note, noteOpen, photoUrl, uploading }
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,7 +46,7 @@ export default function Counting() {
 
     const { data: prodData, error: prodError } = await supabase
       .from("products")
-      .select("id, name, unit, min_quantity, product_categories!inner(category_id)")
+      .select("id, name, unit, min_quantity, count_by_photo, product_categories!inner(category_id)")
       .eq("active", true)
       .eq("product_categories.category_id", category.id)
       .order("name");
@@ -66,7 +68,7 @@ export default function Counting() {
 
       const { data: todayCounts } = await supabase
         .from("counts")
-        .select("product_id, quantity, counted_at, profiles(name)")
+        .select("product_id, quantity, photo_url, counted_at, profiles(name)")
         .in("product_id", productIds)
         .gte("counted_at", todayStart.toISOString())
         .order("counted_at", { ascending: false });
@@ -86,27 +88,69 @@ export default function Counting() {
   function updateEntry(productId, patch) {
     setEntries((prev) => ({
       ...prev,
-      [productId]: { quantity: "", note: "", noteOpen: false, ...prev[productId], ...patch },
+      [productId]: { quantity: "", note: "", noteOpen: false, photoUrl: null, uploading: false, ...prev[productId], ...patch },
     }));
+  }
+
+  async function handlePhotoSelect(productId, file) {
+    if (!file) return;
+    setSaveError("");
+    updateEntry(productId, { uploading: true });
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, "-");
+    const path = `${productId}/${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, {
+      upsert: true,
+      contentType: file.type || "image/jpeg",
+    });
+
+    if (uploadError) {
+      updateEntry(productId, { uploading: false });
+      setSaveError("Não foi possível enviar a foto. " + uploadError.message);
+      return;
+    }
+
+    const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+    updateEntry(productId, { photoUrl: data.publicUrl, uploading: false });
   }
 
   async function handleSave() {
     setSaveError("");
 
+    const productById = Object.fromEntries(products.map((p) => [p.id, p]));
+
     const rows = Object.entries(entries)
-      .filter(([, v]) => v.quantity !== "" && v.quantity !== undefined)
-      .map(([productId, v]) => ({
-        product_id: productId,
-        quantity: Number(v.quantity),
-        note: v.note?.trim() ? v.note.trim() : null,
-        counted_by: profile.id,
-      }));
+      .filter(([productId, v]) => {
+        const product = productById[productId];
+        if (product?.count_by_photo) return Boolean(v.photoUrl);
+        return v.quantity !== "" && v.quantity !== undefined;
+      })
+      .map(([productId, v]) => {
+        const product = productById[productId];
+        if (product?.count_by_photo) {
+          return {
+            product_id: productId,
+            quantity: null,
+            photo_url: v.photoUrl,
+            note: v.note?.trim() ? v.note.trim() : null,
+            counted_by: profile.id,
+          };
+        }
+        return {
+          product_id: productId,
+          quantity: Number(v.quantity),
+          photo_url: null,
+          note: v.note?.trim() ? v.note.trim() : null,
+          counted_by: profile.id,
+        };
+      });
 
     if (rows.length === 0) {
-      setSaveError("Preencha a quantidade de pelo menos um item.");
+      setSaveError("Preencha ao menos um item (quantidade ou foto).");
       return;
     }
-    if (rows.some((r) => Number.isNaN(r.quantity) || r.quantity < 0)) {
+    if (rows.some((r) => r.quantity !== null && (Number.isNaN(r.quantity) || r.quantity < 0))) {
       setSaveError("Tem uma quantidade inválida na lista.");
       return;
     }
@@ -125,7 +169,11 @@ export default function Counting() {
     setTimeout(() => navigate("/"), 900);
   }
 
-  const filledCount = Object.values(entries).filter((v) => v.quantity !== "" && v.quantity !== undefined).length;
+  const filledCount = Object.entries(entries).filter(([productId, v]) => {
+    const product = products.find((p) => p.id === productId);
+    if (product?.count_by_photo) return Boolean(v.photoUrl);
+    return v.quantity !== "" && v.quantity !== undefined;
+  }).length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -153,23 +201,29 @@ export default function Counting() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
         {products.map((p) => {
-          const entry = entries[p.id] || { quantity: "", note: "", noteOpen: false };
+          const entry = entries[p.id] || { quantity: "", note: "", noteOpen: false, photoUrl: null, uploading: false };
+          const todayEntry = todayByProduct[p.id];
+
           return (
             <div key={p.id} style={cardStyle}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 15 }}>{p.name}</div>
                   <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)" }}>
-                    {p.unit} · mín. {p.min_quantity}
+                    {p.count_by_photo ? "contagem por foto" : `${p.unit} · mín. ${p.min_quantity}`}
                   </div>
-                  {todayByProduct[p.id] && (
-                    <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--tr-orange)", marginTop: 2 }}>
-                      já contado hoje: {todayByProduct[p.id].quantity} {p.unit} às{" "}
-                      {new Date(todayByProduct[p.id].counted_at).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      {todayByProduct[p.id].profiles?.name ? ` por ${todayByProduct[p.id].profiles.name}` : ""}
+                  {todayEntry && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                      {p.count_by_photo && todayEntry.photo_url && (
+                        <img src={todayEntry.photo_url} alt="" style={todayThumbStyle} />
+                      )}
+                      <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--tr-orange)" }}>
+                        já contado hoje
+                        {!p.count_by_photo ? `: ${todayEntry.quantity} ${p.unit}` : ""}
+                        {" às "}
+                        {new Date(todayEntry.counted_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        {todayEntry.profiles?.name ? ` por ${todayEntry.profiles.name}` : ""}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -182,24 +236,61 @@ export default function Counting() {
                   <MessageCircle size={16} color={entry.noteOpen || entry.note ? "var(--tr-orange)" : "var(--tr-ink-soft)"} />
                 </button>
 
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="0"
-                  value={entry.quantity}
-                  onChange={(e) => updateEntry(p.id, { quantity: e.target.value })}
-                  style={quantityInputStyle}
-                />
-
-                {entry.quantity !== "" && (
-                  <button
-                    onClick={() => updateEntry(p.id, { quantity: "" })}
-                    style={clearBtnStyle}
-                    title="limpar (não contar este item)"
-                  >
-                    <X size={14} color="var(--tr-ink-soft)" />
-                  </button>
+                {p.count_by_photo ? (
+                  <>
+                    {entry.photoUrl ? (
+                      <div style={{ position: "relative", flexShrink: 0 }}>
+                        <img src={entry.photoUrl} alt="" style={photoPreviewStyle} />
+                        <label htmlFor={`photo-${p.id}`} style={retakeBadgeStyle} title="trocar foto">
+                          <Camera size={12} color="#fff" />
+                        </label>
+                      </div>
+                    ) : (
+                      <label htmlFor={`photo-${p.id}`} style={{ ...photoBtnStyle, opacity: entry.uploading ? 0.6 : 1 }}>
+                        <Camera size={16} />
+                        {entry.uploading ? "enviando…" : "tirar foto"}
+                      </label>
+                    )}
+                    <input
+                      id={`photo-${p.id}`}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      style={{ display: "none" }}
+                      disabled={entry.uploading}
+                      onChange={(e) => handlePhotoSelect(p.id, e.target.files[0])}
+                    />
+                    {entry.photoUrl && (
+                      <button
+                        onClick={() => updateEntry(p.id, { photoUrl: null })}
+                        style={clearBtnStyle}
+                        title="remover foto"
+                      >
+                        <X size={14} color="var(--tr-ink-soft)" />
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0"
+                      value={entry.quantity}
+                      onChange={(e) => updateEntry(p.id, { quantity: e.target.value })}
+                      style={quantityInputStyle}
+                    />
+                    {entry.quantity !== "" && (
+                      <button
+                        onClick={() => updateEntry(p.id, { quantity: "" })}
+                        style={clearBtnStyle}
+                        title="limpar (não contar este item)"
+                      >
+                        <X size={14} color="var(--tr-ink-soft)" />
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -302,6 +393,53 @@ const clearBtnStyle = {
   cursor: "pointer",
   display: "flex",
   flexShrink: 0,
+};
+
+const photoBtnStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "9px 12px",
+  borderRadius: 8,
+  border: "1px solid var(--tr-line)",
+  background: "#fff",
+  fontFamily: "var(--font-body)",
+  fontSize: 12,
+  color: "var(--tr-black)",
+  cursor: "pointer",
+  flexShrink: 0,
+  whiteSpace: "nowrap",
+};
+
+const photoPreviewStyle = {
+  width: 44,
+  height: 44,
+  borderRadius: 8,
+  objectFit: "cover",
+  border: "1px solid var(--tr-line)",
+  display: "block",
+};
+
+const todayThumbStyle = {
+  width: 28,
+  height: 28,
+  borderRadius: 6,
+  objectFit: "cover",
+  border: "1px solid var(--tr-line)",
+};
+
+const retakeBadgeStyle = {
+  position: "absolute",
+  bottom: -4,
+  right: -4,
+  width: 20,
+  height: 20,
+  borderRadius: "50%",
+  background: "var(--tr-black)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
 };
 
 const noteInputStyle = {

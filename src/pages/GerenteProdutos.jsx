@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { ArrowLeft, LogOut, Plus, Pencil, Eye, EyeOff } from "lucide-react";
 
-const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos"];
+const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos", "produtos-limpeza"];
 const UNIT_OPTIONS = ["unidades", "kg", "litros", "pacotes", "rolos", "peças"];
 
 export default function GerenteProdutos() {

@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { LogOut, Package, Users, History, MessageCircle, Camera } from "lucide-react";
 
-const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos"];
+const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos", "produtos-limpeza"];
 
 export default function GerenteDashboard() {
   const { signOut } = useAuth();
@@ -126,7 +126,7 @@ export default function GerenteDashboard() {
               {onlyBelowMin ? " · mostrando só esses" : " · toque pra filtrar"}
             </button>
           ) : (
-            <span style={{ color: "var(--tr-ok)", fontWeight: 600 }}>tudo dentro do mínimo</span>
+            <span style={{ color: "var(--tr-ok)", fontWeight: 600 }}>Tudo dentro do mínimo</span>
           )}
         </div>
       )}

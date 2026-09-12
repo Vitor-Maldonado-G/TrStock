@@ -11,7 +11,7 @@ const CATEGORY_ICONS = {
   "diversos": Package,
 };
 
-const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos"];
+const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos", "produtos-limpeza"];
 
 export default function Home() {
   const { profile, signOut } = useAuth();

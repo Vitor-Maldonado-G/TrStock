@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { ArrowLeft, MessageCircle, Trash2 } from "lucide-react";
 
-const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos"];
+const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos", "produtos-limpeza"];
 
 function isoDate(date) {
   return date.toISOString().slice(0, 10); // yyyy-mm-dd

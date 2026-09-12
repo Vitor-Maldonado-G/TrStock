@@ -176,14 +176,14 @@ export default function Counting() {
   }).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={headerStyle}>
-        <button onClick={() => navigate("/")} style={iconBtnStyle}>
+    <div className="app-page">
+      <div className="app-header">
+        <button onClick={() => navigate("/")} className="icon-button">
           <ArrowLeft size={20} color="#fff" />
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="app-header-brand">
           <img src="/logo.png" alt="TR Stock" style={{ width: 24, height: 24 }} />
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>
+          <span className="app-header-title">
             {categoryName ? categoryName.toUpperCase() : "CONTAGEM"}
           </span>
         </div>
@@ -191,12 +191,12 @@ export default function Counting() {
       </div>
 
       {loading && (
-        <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-ink-soft)" }}>
+        <div className="screen-message screen-message--muted">
           carregando…
         </div>
       )}
       {error && (
-        <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-alert)" }}>{error}</div>
+        <div className="screen-message screen-message--error">{error}</div>
       )}
 
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -351,26 +351,6 @@ export default function Counting() {
 }
 
 // ---- estilos ----
-
-const headerStyle = {
-  height: 64,
-  background: "var(--tr-black)",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "0 12px",
-  flexShrink: 0,
-  gap: 8,
-};
-
-const iconBtnStyle = {
-  background: "none",
-  border: "none",
-  padding: 8,
-  cursor: "pointer",
-  display: "flex",
-};
 
 const cardStyle = {
   background: "#fff",

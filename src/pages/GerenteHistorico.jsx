@@ -145,34 +145,34 @@ export default function GerenteHistorico() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={headerStyle}>
-        <button onClick={() => navigate("/gerente")} style={iconBtnStyle}>
+    <div className="app-page">
+      <div className="app-header">
+        <button onClick={() => navigate("/gerente")} className="icon-button">
           <ArrowLeft size={20} color="#fff" />
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="app-header-brand">
           <img src="/logo.png" alt="TR Stock" style={{ width: 24, height: 24 }} />
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>HISTÓRICO</span>
+          <span className="app-header-title">HISTÓRICO</span>
         </div>
         <div style={{ width: 36 }} />
       </div>
 
-      <div style={{ display: "flex", gap: 8, padding: "14px 20px 4px", overflowX: "auto" }}>
-        <button onClick={() => setFilterSlug("todos")} style={filterSlug === "todos" ? chipActiveStyle : chipStyle}>
+      <div className="filter-row" style={{ padding: "14px 20px 4px" }}>
+        <button onClick={() => setFilterSlug("todos")} className={`filter-chip${filterSlug === "todos" ? " filter-chip--active" : ""}`}>
           todos
         </button>
         {categories.map((c) => (
           <button
             key={c.id}
             onClick={() => setFilterSlug(c.slug)}
-            style={filterSlug === c.slug ? chipActiveStyle : chipStyle}
+            className={`filter-chip${filterSlug === c.slug ? " filter-chip--active" : ""}`}
           >
             {c.name}
           </button>
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 8, padding: "8px 20px 4px", overflowX: "auto" }}>
+      <div className="filter-row" style={{ padding: "8px 20px 4px" }}>
         {[
           { key: "hoje", label: "hoje" },
           { key: "7d", label: "7 dias" },
@@ -182,7 +182,7 @@ export default function GerenteHistorico() {
           <button
             key={opt.key}
             onClick={() => selectQuick(opt.key)}
-            style={quickRange === opt.key ? chipActiveStyle : chipStyle}
+            className={`filter-chip${quickRange === opt.key ? " filter-chip--active" : ""}`}
           >
             {opt.label}
           </button>
@@ -206,12 +206,12 @@ export default function GerenteHistorico() {
       </div>
 
       {loading && (
-        <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-ink-soft)" }}>
+        <div className="screen-message screen-message--muted">
           carregando…
         </div>
       )}
       {error && (
-        <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-alert)" }}>{error}</div>
+        <div className="screen-message screen-message--error">{error}</div>
       )}
 
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 20px" }}>
@@ -322,46 +322,6 @@ export default function GerenteHistorico() {
 }
 
 // ---- estilos ----
-
-const headerStyle = {
-  height: 64,
-  background: "var(--tr-black)",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "0 12px",
-  flexShrink: 0,
-  gap: 8,
-};
-
-const iconBtnStyle = {
-  background: "none",
-  border: "none",
-  padding: 8,
-  cursor: "pointer",
-  display: "flex",
-};
-
-const chipStyle = {
-  flexShrink: 0,
-  padding: "6px 14px",
-  borderRadius: 20,
-  border: "1px solid var(--tr-line)",
-  background: "#fff",
-  color: "var(--tr-black)",
-  fontFamily: "var(--font-body)",
-  fontSize: 13,
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-};
-
-const chipActiveStyle = {
-  ...chipStyle,
-  background: "var(--tr-black)",
-  borderColor: "var(--tr-black)",
-  color: "var(--tr-yellow)",
-};
 
 const dateInputStyle = {
   flex: 1,

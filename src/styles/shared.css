@@ -1,0 +1,87 @@
+.app-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  background: var(--tr-black);
+  color: #fff;
+}
+
+.app-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  letter-spacing: 1px;
+}
+
+.icon-button {
+  display: flex;
+  padding: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.logout-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: var(--tr-yellow);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.filter-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border: 1px solid var(--tr-line);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--tr-black);
+  font-family: var(--font-body);
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filter-chip--active {
+  border-color: var(--tr-black);
+  background: var(--tr-black);
+  color: var(--tr-yellow);
+}
+
+.screen-message {
+  padding: 20px;
+  font-family: var(--font-body);
+}
+
+.screen-message--muted {
+  color: var(--tr-ink-soft);
+}
+
+.screen-message--error {
+  color: var(--tr-alert);
+}

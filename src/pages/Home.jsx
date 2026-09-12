@@ -37,13 +37,13 @@ export default function Home() {
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={headerStyle}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div className="app-page">
+      <div className="app-header" style={{ padding: "0 20px" }}>
+        <div className="app-header-brand">
           <img src="/logo.png" alt="TR Stock" style={{ width: 28, height: 28 }} />
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 1 }}>TR STOCK</span>
+          <span className="app-header-title" style={{ fontSize: 18 }}>TR STOCK</span>
         </div>
-        <button onClick={signOut} style={logoutBtnStyle}>
+        <button onClick={signOut} className="logout-button">
           <LogOut size={16} /> sair
         </button>
       </div>
@@ -56,12 +56,12 @@ export default function Home() {
       </div>
 
       {loading && (
-        <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-ink-soft)" }}>
+        <div className="screen-message screen-message--muted">
           carregando…
         </div>
       )}
       {error && (
-        <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-alert)" }}>{error}</div>
+        <div className="screen-message screen-message--error">{error}</div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, padding: "12px 20px" }}>
@@ -89,29 +89,6 @@ export default function Home() {
     </div>
   );
 }
-
-const headerStyle = {
-  height: 64,
-  background: "var(--tr-black)",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "0 20px",
-  flexShrink: 0,
-};
-
-const logoutBtnStyle = {
-  background: "none",
-  border: "none",
-  color: "var(--tr-yellow)",
-  fontFamily: "var(--font-body)",
-  fontSize: 13,
-  display: "flex",
-  alignItems: "center",
-  gap: 4,
-  cursor: "pointer",
-};
 
 const cardStyle = {
   textAlign: "left",

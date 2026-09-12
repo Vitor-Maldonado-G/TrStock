@@ -61,21 +61,21 @@ export default function GerenteProdutos() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={headerStyle}>
-        <button onClick={() => (formState ? setFormState(null) : navigate("/gerente"))} style={iconBtnStyle}>
+    <div className="app-page">
+      <div className="app-header">
+        <button onClick={() => (formState ? setFormState(null) : navigate("/gerente"))} className="icon-button">
           <ArrowLeft size={20} color="#fff" />
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="app-header-brand">
           <img src="/logo.png" alt="TR Stock" style={{ width: 24, height: 24 }} />
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>
+          <span className="app-header-title">
             {formState ? (formState.id ? "EDITAR PRODUTO" : "NOVO PRODUTO") : "PRODUTOS"}
           </span>
         </div>
         {formState ? (
           <div style={{ width: 20 }} />
         ) : (
-          <button onClick={signOut} style={logoutBtnStyle}>
+          <button onClick={signOut} className="logout-button">
             <LogOut size={16} /> sair
           </button>
         )}
@@ -101,12 +101,12 @@ export default function GerenteProdutos() {
           </div>
 
           {loading && (
-            <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-ink-soft)" }}>
+            <div className="screen-message screen-message--muted">
               carregando…
             </div>
           )}
           {error && (
-            <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-alert)" }}>{error}</div>
+            <div className="screen-message screen-message--error">{error}</div>
           )}
 
           <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -346,38 +346,6 @@ function ProductForm({ product, categories, onCancel, onSaved }) {
 }
 
 // ---- estilos ----
-
-const headerStyle = {
-  height: 64,
-  background: "var(--tr-black)",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "0 12px",
-  flexShrink: 0,
-  gap: 8,
-};
-
-const iconBtnStyle = {
-  background: "none",
-  border: "none",
-  padding: 8,
-  cursor: "pointer",
-  display: "flex",
-};
-
-const logoutBtnStyle = {
-  background: "none",
-  border: "none",
-  color: "var(--tr-yellow)",
-  fontFamily: "var(--font-body)",
-  fontSize: 13,
-  display: "flex",
-  alignItems: "center",
-  gap: 4,
-  cursor: "pointer",
-};
 
 const newBtnStyle = {
   width: "100%",

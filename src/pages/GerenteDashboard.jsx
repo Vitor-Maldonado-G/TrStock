@@ -89,13 +89,13 @@ export default function GerenteDashboard() {
     filterSlug === "todos" ? categories : categories.filter((c) => c.slug === filterSlug);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={headerStyle}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div className="app-page">
+      <div className="app-header" style={{ padding: "0 20px" }}>
+        <div className="app-header-brand">
           <img src="/logo.png" alt="TR Stock" style={{ width: 24, height: 24 }} />
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: 1 }}>PAINEL</span>
+          <span className="app-header-title">PAINEL</span>
         </div>
-        <button onClick={signOut} style={logoutBtnStyle}>
+        <button onClick={signOut} className="logout-button">
           <LogOut size={16} /> sair
         </button>
       </div>
@@ -131,34 +131,34 @@ export default function GerenteDashboard() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, padding: "12px 20px 4px", overflowX: "auto" }}>
-        <button onClick={() => setFilterSlug("todos")} style={filterSlug === "todos" ? chipActiveStyle : chipStyle}>
+      <div className="filter-row" style={{ padding: "12px 20px 4px" }}>
+        <button onClick={() => setFilterSlug("todos")} className={`filter-chip${filterSlug === "todos" ? " filter-chip--active" : ""}`}>
           Todos
         </button>
         {categories.map((c) => (
           <button
             key={c.id}
             onClick={() => setFilterSlug(c.slug)}
-            style={filterSlug === c.slug ? chipActiveStyle : chipStyle}
+            className={`filter-chip${filterSlug === c.slug ? " filter-chip--active" : ""}`}
           >
             {c.name}
           </button>
         ))}
         <button
           onClick={() => setOnlyMarketItems((v) => !v)}
-          style={onlyMarketItems ? chipActiveStyle : chipStyle}
+          className={`filter-chip${onlyMarketItems ? " filter-chip--active" : ""}`}
         >
-          🛒 mercado
+          Mercado
         </button>
       </div>
 
       {loading && (
-        <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-ink-soft)" }}>
+        <div className="screen-message screen-message--muted">
           carregando…
         </div>
       )}
       {error && (
-        <div style={{ padding: 20, fontFamily: "var(--font-body)", color: "var(--tr-alert)" }}>{error}</div>
+        <div className="screen-message screen-message--error">{error}</div>
       )}
 
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 20px" }}>
@@ -275,29 +275,6 @@ function timeAgo(dateStr) {
 
 // ---- estilos ----
 
-const headerStyle = {
-  height: 64,
-  background: "var(--tr-black)",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "0 20px",
-  flexShrink: 0,
-};
-
-const logoutBtnStyle = {
-  background: "none",
-  border: "none",
-  color: "var(--tr-yellow)",
-  fontFamily: "var(--font-body)",
-  fontSize: 13,
-  display: "flex",
-  alignItems: "center",
-  gap: 4,
-  cursor: "pointer",
-};
-
 const navBtnStyle = {
   flex: 1,
   display: "flex",
@@ -314,26 +291,6 @@ const navBtnStyle = {
   fontSize: 11,
   cursor: "pointer",
   whiteSpace: "nowrap",
-};
-
-const chipStyle = {
-  flexShrink: 0,
-  padding: "6px 14px",
-  borderRadius: 20,
-  border: "1px solid var(--tr-line)",
-  background: "#fff",
-  color: "var(--tr-black)",
-  fontFamily: "var(--font-body)",
-  fontSize: 13,
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-};
-
-const chipActiveStyle = {
-  ...chipStyle,
-  background: "var(--tr-black)",
-  borderColor: "var(--tr-black)",
-  color: "var(--tr-yellow)",
 };
 
 const belowMinToggleStyle = {

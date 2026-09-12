@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
-import { UtensilsCrossed, Sandwich, CupSoda, Package, LogOut } from "lucide-react";
+import { UtensilsCrossed, Sandwich, CupSoda, Package, SprayCan, LogOut } from "lucide-react";
 
 const CATEGORY_ICONS = {
   "pizza-esfiha": UtensilsCrossed,
   "lanches": Sandwich,
   "bebidas": CupSoda,
   "diversos": Package,
+  "produtos-limpeza": SprayCan,
 };
 
 const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos", "produtos-limpeza"];

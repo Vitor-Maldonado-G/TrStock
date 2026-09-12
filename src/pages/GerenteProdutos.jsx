@@ -31,7 +31,7 @@ export default function GerenteProdutos() {
       supabase.from("categories").select("id, name, slug"),
       supabase
         .from("products")
-        .select("id, name, unit, min_quantity, active, count_by_photo, product_categories(category_id)")
+        .select("id, name, unit, min_quantity, active, count_by_photo, is_market_item, product_categories(category_id)")
         .order("name"),
     ]);
 
@@ -118,6 +118,7 @@ export default function GerenteProdutos() {
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 15 }}>{p.name}</span>
                       {!p.active && <span style={inactiveBadgeStyle}>inativo</span>}
+                      {p.is_market_item && <span style={marketBadgeStyle}>mercado</span>}
                     </div>
                     <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)", marginTop: 2 }}>
                       {p.count_by_photo ? "contagem por foto" : `${p.unit} · mín. ${p.min_quantity}`}
@@ -174,6 +175,7 @@ function ProductForm({ product, categories, onCancel, onSaved }) {
     new Set((product.product_categories || []).map((pc) => pc.category_id))
   );
   const [countByPhoto, setCountByPhoto] = useState(Boolean(product.count_by_photo));
+  const [isMarketItem, setIsMarketItem] = useState(Boolean(product.is_market_item));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -208,7 +210,7 @@ function ProductForm({ product, categories, onCancel, onSaved }) {
     if (isEditing) {
       const { error: updateError } = await supabase
         .from("products")
-        .update({ name: trimmedName, unit, min_quantity: parsedMin, count_by_photo: countByPhoto })
+        .update({ name: trimmedName, unit, min_quantity: parsedMin, count_by_photo: countByPhoto, is_market_item: isMarketItem })
         .eq("id", productId);
       if (updateError) {
         setError("Não foi possível salvar. " + updateError.message);
@@ -220,7 +222,7 @@ function ProductForm({ product, categories, onCancel, onSaved }) {
     } else {
       const { data, error: insertError } = await supabase
         .from("products")
-        .insert({ name: trimmedName, unit, min_quantity: parsedMin, count_by_photo: countByPhoto })
+        .insert({ name: trimmedName, unit, min_quantity: parsedMin, count_by_photo: countByPhoto, is_market_item: isMarketItem })
         .select("id")
         .single();
       if (insertError) {
@@ -271,6 +273,21 @@ function ProductForm({ product, categories, onCancel, onSaved }) {
         </label>
         <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)", marginTop: 4 }}>
           use pra itens difíceis de contar em número (papéis, embalagens, etc). o contador vai tirar uma foto em vez de digitar uma quantidade.
+        </div>
+      </div>
+
+      <div>
+        <label style={checkboxRowStyle}>
+          <input
+            type="checkbox"
+            checked={isMarketItem}
+            onChange={(e) => setIsMarketItem(e.target.checked)}
+            style={{ width: 18, height: 18 }}
+          />
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 14 }}>item de mercado</span>
+        </label>
+        <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)", marginTop: 4 }}>
+          marca produtos que você compra no mercado, pra filtrar depois na hora das compras. não afeta a contagem.
         </div>
       </div>
 
@@ -397,6 +414,17 @@ const inactiveBadgeStyle = {
   textTransform: "uppercase",
   color: "var(--tr-ink-soft)",
   border: "1px solid var(--tr-line)",
+  borderRadius: 4,
+  padding: "1px 5px",
+};
+
+const marketBadgeStyle = {
+  fontFamily: "var(--font-body)",
+  fontSize: 10,
+  fontWeight: 600,
+  textTransform: "uppercase",
+  color: "var(--tr-black)",
+  background: "var(--tr-yellow)",
   borderRadius: 4,
   padding: "1px 5px",
 };

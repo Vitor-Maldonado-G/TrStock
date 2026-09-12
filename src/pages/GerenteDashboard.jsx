@@ -18,6 +18,7 @@ export default function GerenteDashboard() {
 
   const [filterSlug, setFilterSlug] = useState("todos");
   const [onlyBelowMin, setOnlyBelowMin] = useState(false);
+  const [onlyMarketItems, setOnlyMarketItems] = useState(false);
   const [openNoteId, setOpenNoteId] = useState(null);
   const [openPhotoId, setOpenPhotoId] = useState(null);
 
@@ -37,7 +38,7 @@ export default function GerenteDashboard() {
       supabase.from("categories").select("id, name, slug"),
       supabase
         .from("products")
-        .select("id, name, unit, min_quantity, active, count_by_photo, product_categories(category_id)")
+        .select("id, name, unit, min_quantity, active, count_by_photo, is_market_item, product_categories(category_id)")
         .eq("active", true)
         .order("name"),
       supabase
@@ -67,6 +68,16 @@ export default function GerenteDashboard() {
     return products.filter((p) =>
       (p.product_categories || []).some((pc) => pc.category_id === categoryId)
     );
+  }
+
+  function passesExtraFilters(p) {
+    if (onlyBelowMin) {
+      const latest = latestByProduct[p.id];
+      const isBelowMin = latest && latest.quantity != null && Number(latest.quantity) < Number(p.min_quantity);
+      if (!isBelowMin) return false;
+    }
+    if (onlyMarketItems && !p.is_market_item) return false;
+    return true;
   }
 
   const belowMinCount = products.filter((p) => {
@@ -133,6 +144,12 @@ export default function GerenteDashboard() {
             {c.name}
           </button>
         ))}
+        <button
+          onClick={() => setOnlyMarketItems((v) => !v)}
+          style={onlyMarketItems ? chipActiveStyle : chipStyle}
+        >
+          🛒 mercado
+        </button>
       </div>
 
       {loading && (
@@ -146,11 +163,7 @@ export default function GerenteDashboard() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 20px" }}>
         {categoriesToShow.map((cat) => {
-          const catProducts = productsForCategory(cat.id).filter((p) => {
-            if (!onlyBelowMin) return true;
-            const latest = latestByProduct[p.id];
-            return latest && latest.quantity != null && Number(latest.quantity) < Number(p.min_quantity);
-          });
+          const catProducts = productsForCategory(cat.id).filter(passesExtraFilters);
           if (catProducts.length === 0) return null;
           return (
             <div key={cat.id} style={{ marginBottom: 18 }}>
@@ -233,16 +246,15 @@ export default function GerenteDashboard() {
 
         {!loading &&
           !error &&
-          categoriesToShow.every((cat) => {
-            const catProducts = productsForCategory(cat.id).filter((p) => {
-              if (!onlyBelowMin) return true;
-              const latest = latestByProduct[p.id];
-              return latest && latest.quantity != null && Number(latest.quantity) < Number(p.min_quantity);
-            });
-            return catProducts.length === 0;
-          }) && (
+          categoriesToShow.every((cat) => productsForCategory(cat.id).filter(passesExtraFilters).length === 0) && (
             <div style={{ padding: 20, fontFamily: "var(--font-body)", fontSize: 13, color: "var(--tr-ink-soft)", textAlign: "center" }}>
-              {onlyBelowMin ? "Nenhum item abaixo do mínimo nessa categoria." : "Nenhum produto ativo nessa categoria."}
+              {onlyBelowMin && onlyMarketItems
+                ? "Nenhum item de mercado abaixo do mínimo nessa categoria."
+                : onlyBelowMin
+                ? "Nenhum item abaixo do mínimo nessa categoria."
+                : onlyMarketItems
+                ? "Nenhum item de mercado nessa categoria."
+                : "Nenhum produto ativo nessa categoria."}
             </div>
           )}
       </div>

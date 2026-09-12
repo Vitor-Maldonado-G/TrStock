@@ -133,7 +133,7 @@ export default function GerenteDashboard() {
 
       <div style={{ display: "flex", gap: 8, padding: "12px 20px 4px", overflowX: "auto" }}>
         <button onClick={() => setFilterSlug("todos")} style={filterSlug === "todos" ? chipActiveStyle : chipStyle}>
-          todos
+          Todos
         </button>
         {categories.map((c) => (
           <button

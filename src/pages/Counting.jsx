@@ -215,40 +215,9 @@ export default function Counting() {
                   style={noteIconBtnStyle}
                   title="observação"
                 >
-                  <MessageCircle size={16} color={entry.noteOpen || entry.note ? "var(--tr-orange)" : "var(--tr-ink-soft)"} />
+                  <MessageCircle size={16} color={entry.noteOpen || entry.note || entry.photoUrl ? "var(--tr-orange)" : "var(--tr-ink-soft)"} />
                 </button>
 
-                {entry.photoUrl ? (
-                  <div style={{ position: "relative", flexShrink: 0 }}>
-                    <img src={entry.photoUrl} alt="" style={photoPreviewStyle} />
-                    <label htmlFor={`photo-${p.id}`} style={retakeBadgeStyle} title="trocar foto">
-                      <Camera size={12} color="#fff" />
-                    </label>
-                  </div>
-                ) : (
-                  <label htmlFor={`photo-${p.id}`} style={{ ...photoBtnStyle, opacity: entry.uploading ? 0.6 : 1 }}>
-                    <Camera size={16} />
-                    {entry.uploading ? "enviando…" : "foto"}
-                  </label>
-                )}
-                <input
-                  id={`photo-${p.id}`}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  style={{ display: "none" }}
-                  disabled={entry.uploading}
-                  onChange={(e) => handlePhotoSelect(p.id, e.target.files[0])}
-                />
-                {entry.photoUrl && (
-                  <button
-                    onClick={() => updateEntry(p.id, { photoUrl: null })}
-                    style={clearBtnStyle}
-                    title="remover foto"
-                  >
-                    <X size={14} color="var(--tr-ink-soft)" />
-                  </button>
-                )}
                 <input
                   type="number"
                   min="0"
@@ -270,13 +239,48 @@ export default function Counting() {
               </div>
 
               {entry.noteOpen && (
-                <textarea
-                  value={entry.note}
-                  onChange={(e) => updateEntry(p.id, { note: e.target.value })}
-                  placeholder="observação (opcional)"
-                  style={noteInputStyle}
-                  rows={2}
-                />
+                <div style={noteAreaStyle}>
+                  <textarea
+                    value={entry.note}
+                    onChange={(e) => updateEntry(p.id, { note: e.target.value })}
+                    placeholder="observação (opcional)"
+                    style={noteInputStyle}
+                    rows={2}
+                  />
+                  <div style={noteAttachmentStyle}>
+                    {entry.photoUrl ? (
+                      <>
+                        <div style={{ position: "relative" }}>
+                          <img src={entry.photoUrl} alt="foto da contagem" style={photoPreviewStyle} />
+                          <label htmlFor={`photo-${p.id}`} style={retakeBadgeStyle} title="trocar foto">
+                            <Camera size={12} color="#fff" />
+                          </label>
+                        </div>
+                        <button
+                          onClick={() => updateEntry(p.id, { photoUrl: null })}
+                          style={clearBtnStyle}
+                          title="remover foto"
+                        >
+                          <X size={14} color="var(--tr-ink-soft)" />
+                        </button>
+                      </>
+                    ) : (
+                      <label htmlFor={`photo-${p.id}`} style={{ ...notePhotoBtnStyle, opacity: entry.uploading ? 0.6 : 1 }}>
+                        <Camera size={16} />
+                        {entry.uploading ? "enviando…" : "adicionar foto"}
+                      </label>
+                    )}
+                    <input
+                      id={`photo-${p.id}`}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      style={{ display: "none" }}
+                      disabled={entry.uploading}
+                      onChange={(e) => handlePhotoSelect(p.id, e.target.files[0])}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           );
@@ -350,22 +354,6 @@ const clearBtnStyle = {
   flexShrink: 0,
 };
 
-const photoBtnStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  padding: "9px 12px",
-  borderRadius: 8,
-  border: "1px solid var(--tr-line)",
-  background: "#fff",
-  fontFamily: "var(--font-body)",
-  fontSize: 12,
-  color: "var(--tr-black)",
-  cursor: "pointer",
-  flexShrink: 0,
-  whiteSpace: "nowrap",
-};
-
 const photoPreviewStyle = {
   width: 44,
   height: 44,
@@ -399,7 +387,6 @@ const retakeBadgeStyle = {
 
 const noteInputStyle = {
   width: "100%",
-  marginTop: 8,
   padding: "8px 10px",
   borderRadius: 8,
   border: "1px solid var(--tr-line)",
@@ -407,6 +394,31 @@ const noteInputStyle = {
   fontSize: 13,
   outline: "none",
   resize: "none",
+};
+
+const noteAreaStyle = {
+  marginTop: 8,
+};
+
+const noteAttachmentStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  marginTop: 8,
+};
+
+const notePhotoBtnStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "7px 10px",
+  borderRadius: 7,
+  border: "1px solid var(--tr-line)",
+  background: "#fff",
+  fontFamily: "var(--font-body)",
+  fontSize: 12,
+  color: "var(--tr-black)",
+  cursor: "pointer",
 };
 
 const footerStyle = {

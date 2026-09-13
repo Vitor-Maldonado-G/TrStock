@@ -52,6 +52,7 @@ export default function GerenteDashboard() {
       supabase
         .from("counts")
         .select("id, product_id, quantity, photo_path, note, counted_at, profiles!counts_counted_by_fkey(name)")
+        .is("voided_at", null)
         .order("counted_at", { ascending: false }),
       supabase.from("replenishments").select("product_id, status, note, ordered_at, ordered_by").eq("status", "ordered"),
       ]);

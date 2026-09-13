@@ -25,41 +25,46 @@ serve(async (req) => {
       );
     }
 
+    if (!['contador', 'gerente'].includes(role)) {
+      return jsonResponse({ error: 'Cargo inválido.' }, 400);
+    }
+
     // Cliente admin com service role key (só existe no server, nunca no navegador)
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // (Opcional, mas recomendado) checar se quem chamou é um gerente autenticado.
-    // Se sua tela já garante isso no frontend/RLS, pode remover este bloco.
+    // A autorização é obrigatória: a tela não é uma fronteira de segurança.
     const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } },
+    if (!authHeader) {
+      return jsonResponse({ error: "Não autenticado." }, 401);
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const {
+      data: { user: caller },
+    } = await supabaseClient.auth.getUser();
+
+    if (!caller) {
+      return jsonResponse({ error: "Não autenticado." }, 401);
+    }
+
+    const { data: callerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("role, active")
+      .eq("id", caller.id)
+      .single();
+
+    if (callerProfile?.role !== "gerente" || callerProfile.active === false) {
+      return jsonResponse(
+        { error: "Apenas gerentes ativos podem criar funcionários." },
+        403,
       );
-      const {
-        data: { user: caller },
-      } = await supabaseClient.auth.getUser();
-
-      if (!caller) {
-        return jsonResponse({ error: "Não autenticado." }, 401);
-      }
-
-      const { data: callerProfile } = await supabaseAdmin
-        .from("profiles")
-        .select("role")
-        .eq("id", caller.id)
-        .single();
-
-      if (callerProfile?.role !== "manager" && callerProfile?.role !== "gerente") {
-        return jsonResponse(
-          { error: "Apenas gerentes podem criar funcionários." },
-          403,
-        );
-      }
     }
 
     // 1. Criar usuário no Supabase Auth

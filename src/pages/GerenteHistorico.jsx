@@ -54,6 +54,7 @@ export default function GerenteHistorico() {
   const [deleteTarget, setDeleteTarget] = useState(null); // entry aguardando confirmação
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [voidReason, setVoidReason] = useState("");
 
   useEffect(() => {
     load();
@@ -77,6 +78,7 @@ export default function GerenteHistorico() {
     let query = supabase
       .from("counts")
       .select("id, quantity, note, counted_at, profiles(name), products(name, unit, product_categories(category_id))")
+      .is("voided_at", null)
       .order("counted_at", { ascending: false })
       .limit(500);
 
@@ -108,19 +110,27 @@ export default function GerenteHistorico() {
 
   async function confirmDelete() {
     if (!deleteTarget) return;
+    if (!voidReason.trim()) {
+      setDeleteError("Informe o motivo da anulação.");
+      return;
+    }
     setDeleting(true);
     setDeleteError("");
 
-    const { error: deleteErr } = await supabase.from("counts").delete().eq("id", deleteTarget.id);
+    const { error: deleteErr } = await supabase
+      .from("counts")
+      .update({ voided_at: new Date().toISOString(), void_reason: voidReason.trim() })
+      .eq("id", deleteTarget.id);
 
     if (deleteErr) {
-      setDeleteError("Não foi possível apagar. " + deleteErr.message);
+      setDeleteError("Não foi possível anular. " + deleteErr.message);
       setDeleting(false);
       return;
     }
 
     setDeleting(false);
     setDeleteTarget(null);
+    setVoidReason("");
     load();
   }
 
@@ -254,10 +264,11 @@ export default function GerenteHistorico() {
                         <button
                           onClick={() => {
                             setDeleteError("");
+                            setVoidReason("");
                             setDeleteTarget(entry);
                           }}
                           style={noteIconBtnStyle}
-                          title="apagar contagem"
+                          title="anular contagem"
                         >
                           <Trash2 size={16} color="var(--tr-ink-soft)" />
                         </button>
@@ -283,14 +294,22 @@ export default function GerenteHistorico() {
         <div style={overlayStyle} onClick={() => !deleting && setDeleteTarget(null)}>
           <div style={confirmCardStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 16, marginBottom: 8 }}>
-              Apagar essa contagem?
+              Anular essa contagem?
             </div>
             <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--tr-ink-soft)", marginBottom: 16 }}>
               {deleteTarget.products?.name || "produto"} — {deleteTarget.quantity} {deleteTarget.products?.unit || ""}
               {deleteTarget.profiles?.name ? ` · contado por ${deleteTarget.profiles.name}` : ""}
               <br />
-              Essa ação não pode ser desfeita.
+              A contagem sairá da lista, mas ficará registrada para auditoria.
             </div>
+
+            <textarea
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="motivo da anulação"
+              rows={2}
+              style={{ ...dateInputStyle, height: "auto", padding: "10px", marginBottom: 12, resize: "vertical" }}
+            />
 
             {deleteError && (
               <div style={{ color: "var(--tr-alert)", fontSize: 13, fontFamily: "var(--font-body)", marginBottom: 12 }}>
@@ -300,7 +319,7 @@ export default function GerenteHistorico() {
 
             <div style={{ display: "flex", gap: 10 }}>
               <button
-                onClick={() => setDeleteTarget(null)}
+                onClick={() => { setDeleteTarget(null); setVoidReason(""); }}
                 disabled={deleting}
                 style={cancelBtnStyle}
               >
@@ -311,7 +330,7 @@ export default function GerenteHistorico() {
                 disabled={deleting}
                 style={{ ...confirmDeleteBtnStyle, opacity: deleting ? 0.6 : 1 }}
               >
-                {deleting ? "apagando…" : "apagar"}
+                {deleting ? "anulando…" : "anular"}
               </button>
             </div>
           </div>

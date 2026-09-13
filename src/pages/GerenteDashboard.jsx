@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { attachSignedPhotoUrls } from "../lib/countPhotos";
 import { LogOut, Package, Users, History, MessageCircle, Camera } from "lucide-react";
 
 const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos", "produtos-limpeza"];
@@ -43,7 +44,7 @@ export default function GerenteDashboard() {
         .order("name"),
       supabase
         .from("counts")
-        .select("id, product_id, quantity, photo_url, note, counted_at, profiles(name)")
+        .select("id, product_id, quantity, photo_path, note, counted_at, profiles(name)")
         .order("counted_at", { ascending: false }),
     ]);
 
@@ -53,8 +54,9 @@ export default function GerenteDashboard() {
       const sortedCats = [...catData].sort(
         (a, b) => CATEGORY_ORDER.indexOf(a.slug) - CATEGORY_ORDER.indexOf(b.slug)
       );
+      const countsWithPhotoUrls = await attachSignedPhotoUrls(countsData);
       const latest = {};
-      for (const c of countsData) {
+      for (const c of countsWithPhotoUrls) {
         if (!(c.product_id in latest)) latest[c.product_id] = c;
       }
       setCategories(sortedCats);
@@ -174,7 +176,7 @@ export default function GerenteDashboard() {
                   const belowMin = latest && latest.quantity != null && Number(latest.quantity) < Number(p.min_quantity);
                   const hasNote = latest && latest.note;
                   const noteOpen = latest && openNoteId === latest.id;
-                  const hasPhoto = latest && latest.photo_url;
+                  const hasPhoto = latest && latest.photoPreviewUrl;
                   const photoOpen = latest && openPhotoId === latest.id;
 
                   return (
@@ -233,7 +235,7 @@ export default function GerenteDashboard() {
                       {noteOpen && <div style={noteBoxStyle}>{latest.note}</div>}
                       {photoOpen && (
                         <div style={photoBoxStyle}>
-                          <img src={latest.photo_url} alt={`foto da contagem de ${p.name}`} style={photoImgStyle} />
+                          <img src={latest.photoPreviewUrl} alt={`foto da contagem de ${p.name}`} style={photoImgStyle} />
                         </div>
                       )}
                     </div>

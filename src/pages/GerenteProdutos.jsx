@@ -202,45 +202,27 @@ function ProductForm({ product, categories, onCancel, onSaved }) {
       setError("Quantidade mínima inválida.");
       return;
     }
+    if (categoryIds.size === 0) {
+      setError("Selecione ao menos uma categoria.");
+      return;
+    }
 
     setSaving(true);
 
-    let productId = product.id;
+    const { error: saveError } = await supabase.rpc("save_product_with_categories", {
+      p_product_id: isEditing ? product.id : null,
+      p_name: trimmedName,
+      p_unit: unit,
+      p_min_quantity: parsedMin,
+      p_count_by_photo: countByPhoto,
+      p_is_market_item: isMarketItem,
+      p_category_ids: [...categoryIds],
+    });
 
-    if (isEditing) {
-      const { error: updateError } = await supabase
-        .from("products")
-        .update({ name: trimmedName, unit, min_quantity: parsedMin, count_by_photo: countByPhoto, is_market_item: isMarketItem })
-        .eq("id", productId);
-      if (updateError) {
-        setError("Não foi possível salvar. " + updateError.message);
-        setSaving(false);
-        return;
-      }
-      // remove vínculos antigos pra refazer do zero com a seleção atual
-      await supabase.from("product_categories").delete().eq("product_id", productId);
-    } else {
-      const { data, error: insertError } = await supabase
-        .from("products")
-        .insert({ name: trimmedName, unit, min_quantity: parsedMin, count_by_photo: countByPhoto, is_market_item: isMarketItem })
-        .select("id")
-        .single();
-      if (insertError) {
-        setError("Não foi possível criar. " + insertError.message);
-        setSaving(false);
-        return;
-      }
-      productId = data.id;
-    }
-
-    if (categoryIds.size > 0) {
-      const rows = [...categoryIds].map((categoryId) => ({ product_id: productId, category_id: categoryId }));
-      const { error: linkError } = await supabase.from("product_categories").insert(rows);
-      if (linkError) {
-        setError("Produto salvo, mas houve erro ao vincular categorias. " + linkError.message);
-        setSaving(false);
-        return;
-      }
+    if (saveError) {
+      setError("Não foi possível salvar. " + saveError.message);
+      setSaving(false);
+      return;
     }
 
     setSaving(false);

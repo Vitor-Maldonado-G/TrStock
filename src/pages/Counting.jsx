@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { attachSignedPhotoUrls, signedPhotoUrl } from "../lib/countPhotos";
 import { ArrowLeft, MessageCircle, X, Camera } from "lucide-react";
 
 const PHOTO_BUCKET = "fotos-contagem";
@@ -14,17 +15,23 @@ export default function Counting() {
   const [categoryName, setCategoryName] = useState("");
   const [products, setProducts] = useState([]);
   const [todayByProduct, setTodayByProduct] = useState({}); // product_id -> última contagem de hoje
-  const [entries, setEntries] = useState({}); // product_id -> { quantity, note, noteOpen, photoUrl, uploading }
+  const [entries, setEntries] = useState({}); // product_id -> { quantity, note, noteOpen, photoPath, photoPreviewUrl, uploading }
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
+  const uploadedPhotoPaths = useRef(new Set());
 
   useEffect(() => {
     load();
   }, [categoria]);
+
+  useEffect(() => () => {
+    const paths = [...uploadedPhotoPaths.current];
+    if (paths.length > 0) supabase.storage.from(PHOTO_BUCKET).remove(paths);
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -68,14 +75,15 @@ export default function Counting() {
 
       const { data: todayCounts } = await supabase
         .from("counts")
-        .select("product_id, quantity, photo_url, counted_at, profiles(name)")
+        .select("product_id, quantity, photo_path, counted_at, profiles(name)")
         .in("product_id", productIds)
         .gte("counted_at", todayStart.toISOString())
         .order("counted_at", { ascending: false });
 
       if (todayCounts) {
+        const countsWithPhotoUrls = await attachSignedPhotoUrls(todayCounts);
         const latest = {};
-        for (const c of todayCounts) {
+        for (const c of countsWithPhotoUrls) {
           if (!(c.product_id in latest)) latest[c.product_id] = c;
         }
         setTodayByProduct(latest);
@@ -88,7 +96,7 @@ export default function Counting() {
   function updateEntry(productId, patch) {
     setEntries((prev) => ({
       ...prev,
-      [productId]: { quantity: "", note: "", noteOpen: false, photoUrl: null, uploading: false, ...prev[productId], ...patch },
+      [productId]: { quantity: "", note: "", noteOpen: false, photoPath: null, photoPreviewUrl: null, uploading: false, ...prev[productId], ...patch },
     }));
   }
 
@@ -98,10 +106,11 @@ export default function Counting() {
     updateEntry(productId, { uploading: true });
 
     const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, "-");
-    const path = `${productId}/${Date.now()}-${safeName}`;
+    const path = `${profile.id}/${productId}/${Date.now()}-${safeName}`;
+    const previousPath = entries[productId]?.photoPath;
 
     const { error: uploadError } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, {
-      upsert: true,
+      upsert: false,
       contentType: file.type || "image/jpeg",
     });
 
@@ -111,20 +120,45 @@ export default function Counting() {
       return;
     }
 
-    const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
-    updateEntry(productId, { photoUrl: data.publicUrl, uploading: false });
+    const previewUrl = await signedPhotoUrl(path);
+    if (!previewUrl) {
+      await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+      updateEntry(productId, { uploading: false });
+      setSaveError("Não foi possível preparar a foto para visualização.");
+      return;
+    }
+
+    uploadedPhotoPaths.current.add(path);
+    if (previousPath && uploadedPhotoPaths.current.has(previousPath)) {
+      await supabase.storage.from(PHOTO_BUCKET).remove([previousPath]);
+      uploadedPhotoPaths.current.delete(previousPath);
+    }
+    updateEntry(productId, { photoPath: path, photoPreviewUrl: previewUrl, uploading: false });
+  }
+
+  async function handlePhotoRemove(productId) {
+    const path = entries[productId]?.photoPath;
+    if (path && uploadedPhotoPaths.current.has(path)) {
+      const { error: removeError } = await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+      if (removeError) {
+        setSaveError("Não foi possível remover a foto. " + removeError.message);
+        return;
+      }
+      uploadedPhotoPaths.current.delete(path);
+    }
+    updateEntry(productId, { photoPath: null, photoPreviewUrl: null });
   }
 
   async function handleSave() {
     setSaveError("");
 
     const rows = Object.entries(entries)
-      .filter(([, v]) => v.quantity !== "" || Boolean(v.photoUrl))
+      .filter(([, v]) => v.quantity !== "" || Boolean(v.photoPath))
       .map(([productId, v]) => {
         return {
           product_id: productId,
           quantity: v.quantity !== "" ? Number(v.quantity) : null,
-          photo_url: v.photoUrl || null,
+          photo_path: v.photoPath || null,
           note: v.note?.trim() ? v.note.trim() : null,
           counted_by: profile.id,
         };
@@ -143,18 +177,25 @@ export default function Counting() {
     const { error: insertError } = await supabase.from("counts").insert(rows);
 
     if (insertError) {
+      const paths = [...uploadedPhotoPaths.current];
+      if (paths.length > 0) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
+      uploadedPhotoPaths.current.clear();
+      setEntries((prev) => Object.fromEntries(
+        Object.entries(prev).map(([productId, entry]) => [productId, { ...entry, photoPath: null, photoPreviewUrl: null }]),
+      ));
       setSaveError("Não foi possível salvar. " + insertError.message);
       setSaving(false);
       return;
     }
 
     setSaving(false);
+    uploadedPhotoPaths.current.clear();
     setSaved(true);
     setTimeout(() => navigate("/"), 900);
   }
 
   const filledCount = Object.entries(entries).filter(([, v]) => {
-    return v.quantity !== "" || Boolean(v.photoUrl);
+    return v.quantity !== "" || Boolean(v.photoPath);
   }).length;
 
   return (
@@ -183,7 +224,7 @@ export default function Counting() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
         {products.map((p) => {
-          const entry = entries[p.id] || { quantity: "", note: "", noteOpen: false, photoUrl: null, uploading: false };
+          const entry = entries[p.id] || { quantity: "", note: "", noteOpen: false, photoPath: null, photoPreviewUrl: null, uploading: false };
           const todayEntry = todayByProduct[p.id];
 
           return (
@@ -196,8 +237,8 @@ export default function Counting() {
                   </div>
                   {todayEntry && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                      {todayEntry.photo_url && (
-                        <img src={todayEntry.photo_url} alt="" style={todayThumbStyle} />
+                      {todayEntry.photoPreviewUrl && (
+                        <img src={todayEntry.photoPreviewUrl} alt="" style={todayThumbStyle} />
                       )}
                       <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--tr-orange)" }}>
                         já contado hoje
@@ -215,7 +256,7 @@ export default function Counting() {
                   style={noteIconBtnStyle}
                   title="observação"
                 >
-                  <MessageCircle size={16} color={entry.noteOpen || entry.note || entry.photoUrl ? "var(--tr-orange)" : "var(--tr-ink-soft)"} />
+                  <MessageCircle size={16} color={entry.noteOpen || entry.note || entry.photoPath ? "var(--tr-orange)" : "var(--tr-ink-soft)"} />
                 </button>
 
                 <input
@@ -248,16 +289,16 @@ export default function Counting() {
                     rows={2}
                   />
                   <div style={noteAttachmentStyle}>
-                    {entry.photoUrl ? (
+                    {entry.photoPath ? (
                       <>
                         <div style={{ position: "relative" }}>
-                          <img src={entry.photoUrl} alt="foto da contagem" style={photoPreviewStyle} />
+                          <img src={entry.photoPreviewUrl} alt="foto da contagem" style={photoPreviewStyle} />
                           <label htmlFor={`photo-${p.id}`} style={retakeBadgeStyle} title="trocar foto">
                             <Camera size={12} color="#fff" />
                           </label>
                         </div>
                         <button
-                          onClick={() => updateEntry(p.id, { photoUrl: null })}
+                          onClick={() => handlePhotoRemove(p.id)}
                           style={clearBtnStyle}
                           title="remover foto"
                         >

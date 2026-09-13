@@ -134,3 +134,31 @@ with check (bucket_id = 'fotos-contagem' and owner_id = auth.uid()::text);
 drop policy if exists "tr_count_photos_delete" on storage.objects;
 create policy "tr_count_photos_delete" on storage.objects for delete to authenticated
 using (bucket_id = 'fotos-contagem' and (owner_id = auth.uid()::text or public.is_gerente()));
+
+-- Mostra apenas o aviso necessário para evitar dupla contagem no mesmo dia.
+create or replace function public.today_counts_for_products(
+  p_product_ids uuid[],
+  p_from timestamptz
+)
+returns table (
+  product_id uuid,
+  quantity numeric,
+  counted_at timestamptz,
+  counter_name text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select c.product_id, c.quantity, c.counted_at, p.name
+  from public.counts c
+  join public.profiles p on p.id = c.counted_by
+  where c.product_id = any(p_product_ids)
+    and c.counted_at >= p_from
+    and c.voided_at is null
+  order by c.counted_at desc;
+$$;
+
+revoke all on function public.today_counts_for_products(uuid[], timestamptz) from public;
+grant execute on function public.today_counts_for_products(uuid[], timestamptz) to authenticated;

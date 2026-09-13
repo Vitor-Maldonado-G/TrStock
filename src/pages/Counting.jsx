@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
-import { attachSignedPhotoUrls, signedPhotoUrl } from "../lib/countPhotos";
+import { signedPhotoUrl } from "../lib/countPhotos";
 import { ArrowLeft, MessageCircle, X, Camera } from "lucide-react";
 
 const PHOTO_BUCKET = "fotos-contagem";
@@ -73,17 +73,19 @@ export default function Counting() {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const { data: todayCounts } = await supabase
-        .from("counts")
-        .select("product_id, quantity, photo_path, counted_at, profiles!counts_counted_by_fkey(name)")
-        .in("product_id", productIds)
-        .gte("counted_at", todayStart.toISOString())
-        .order("counted_at", { ascending: false });
+      const { data: todayCounts, error: todayCountsError } = await supabase.rpc(
+        "today_counts_for_products",
+        {
+          p_product_ids: productIds,
+          p_from: todayStart.toISOString(),
+        },
+      );
 
-      if (todayCounts) {
-        const countsWithPhotoUrls = await attachSignedPhotoUrls(todayCounts);
+      if (todayCountsError) {
+        setError("Não foi possível verificar as contagens de hoje.");
+      } else if (todayCounts) {
         const latest = {};
-        for (const c of countsWithPhotoUrls) {
+        for (const c of todayCounts) {
           if (!(c.product_id in latest)) latest[c.product_id] = c;
         }
         setTodayByProduct(latest);
@@ -237,15 +239,12 @@ export default function Counting() {
                   </div>
                   {todayEntry && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                      {todayEntry.photoPreviewUrl && (
-                        <img src={todayEntry.photoPreviewUrl} alt="" style={todayThumbStyle} />
-                      )}
                       <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--tr-orange)" }}>
                         já contado hoje
                         {todayEntry.quantity != null ? `: ${todayEntry.quantity} ${p.unit}` : ": foto"}
                         {" às "}
                         {new Date(todayEntry.counted_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                        {todayEntry.profiles?.name ? ` por ${todayEntry.profiles.name}` : ""}
+                        {todayEntry.counter_name ? ` por ${todayEntry.counter_name}` : ""}
                       </div>
                     </div>
                   )}
@@ -402,14 +401,6 @@ const photoPreviewStyle = {
   objectFit: "cover",
   border: "1px solid var(--tr-line)",
   display: "block",
-};
-
-const todayThumbStyle = {
-  width: 28,
-  height: 28,
-  borderRadius: 6,
-  objectFit: "cover",
-  border: "1px solid var(--tr-line)",
 };
 
 const retakeBadgeStyle = {

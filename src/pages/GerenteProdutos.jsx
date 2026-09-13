@@ -121,7 +121,7 @@ export default function GerenteProdutos() {
                       {p.is_market_item && <span style={marketBadgeStyle}>mercado</span>}
                     </div>
                     <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)", marginTop: 2 }}>
-                      {p.count_by_photo ? "contagem por foto" : `${p.unit} · mín. ${p.min_quantity}`}
+                      {`${p.unit} · mín. ${p.min_quantity}${p.count_by_photo ? " · foto recomendada" : ""}`}
                     </div>
                     {cats.length > 0 && (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
@@ -269,10 +269,10 @@ function ProductForm({ product, categories, onCancel, onSaved }) {
             onChange={(e) => setCountByPhoto(e.target.checked)}
             style={{ width: 18, height: 18 }}
           />
-          <span style={{ fontFamily: "var(--font-body)", fontSize: 14 }}>contagem por foto</span>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 14 }}>foto recomendada</span>
         </label>
         <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)", marginTop: 4 }}>
-          use pra itens difíceis de contar em número (papéis, embalagens, etc). o contador vai tirar uma foto em vez de digitar uma quantidade.
+          marque os itens em que uma foto ajuda na conferência. a foto continua opcional e o contador também pode informar a quantidade.
         </div>
       </div>
 

@@ -118,29 +118,13 @@ export default function Counting() {
   async function handleSave() {
     setSaveError("");
 
-    const productById = Object.fromEntries(products.map((p) => [p.id, p]));
-
     const rows = Object.entries(entries)
-      .filter(([productId, v]) => {
-        const product = productById[productId];
-        if (product?.count_by_photo) return Boolean(v.photoUrl);
-        return v.quantity !== "" && v.quantity !== undefined;
-      })
+      .filter(([, v]) => v.quantity !== "" || Boolean(v.photoUrl))
       .map(([productId, v]) => {
-        const product = productById[productId];
-        if (product?.count_by_photo) {
-          return {
-            product_id: productId,
-            quantity: v.quantity !== "" && v.quantity !== undefined ? Number(v.quantity) : null,
-            photo_url: v.photoUrl,
-            note: v.note?.trim() ? v.note.trim() : null,
-            counted_by: profile.id,
-          };
-        }
         return {
           product_id: productId,
-          quantity: Number(v.quantity),
-          photo_url: null,
+          quantity: v.quantity !== "" ? Number(v.quantity) : null,
+          photo_url: v.photoUrl || null,
           note: v.note?.trim() ? v.note.trim() : null,
           counted_by: profile.id,
         };
@@ -169,10 +153,8 @@ export default function Counting() {
     setTimeout(() => navigate("/"), 900);
   }
 
-  const filledCount = Object.entries(entries).filter(([productId, v]) => {
-    const product = products.find((p) => p.id === productId);
-    if (product?.count_by_photo) return Boolean(v.photoUrl);
-    return v.quantity !== "" && v.quantity !== undefined;
+  const filledCount = Object.entries(entries).filter(([, v]) => {
+    return v.quantity !== "" || Boolean(v.photoUrl);
   }).length;
 
   return (
@@ -210,20 +192,16 @@ export default function Counting() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 15 }}>{p.name}</div>
                   <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)" }}>
-                    {p.count_by_photo ? "contagem por foto" : `${p.unit} · mín. ${p.min_quantity}`}
+                    {`${p.unit} · mín. ${p.min_quantity}${p.count_by_photo ? " · foto recomendada" : ""}`}
                   </div>
                   {todayEntry && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                      {p.count_by_photo && todayEntry.photo_url && (
+                      {todayEntry.photo_url && (
                         <img src={todayEntry.photo_url} alt="" style={todayThumbStyle} />
                       )}
                       <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--tr-orange)" }}>
                         já contado hoje
-                        {!p.count_by_photo
-                          ? `: ${todayEntry.quantity} ${p.unit}`
-                          : todayEntry.quantity != null
-                          ? ` (~${todayEntry.quantity} estimado)`
-                          : ""}
+                        {todayEntry.quantity != null ? `: ${todayEntry.quantity} ${p.unit}` : ": foto"}
                         {" às "}
                         {new Date(todayEntry.counted_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         {todayEntry.profiles?.name ? ` por ${todayEntry.profiles.name}` : ""}
@@ -240,71 +218,54 @@ export default function Counting() {
                   <MessageCircle size={16} color={entry.noteOpen || entry.note ? "var(--tr-orange)" : "var(--tr-ink-soft)"} />
                 </button>
 
-                {p.count_by_photo ? (
-                  <>
-                    {entry.photoUrl ? (
-                      <div style={{ position: "relative", flexShrink: 0 }}>
-                        <img src={entry.photoUrl} alt="" style={photoPreviewStyle} />
-                        <label htmlFor={`photo-${p.id}`} style={retakeBadgeStyle} title="trocar foto">
-                          <Camera size={12} color="#fff" />
-                        </label>
-                      </div>
-                    ) : (
-                      <label htmlFor={`photo-${p.id}`} style={{ ...photoBtnStyle, opacity: entry.uploading ? 0.6 : 1 }}>
-                        <Camera size={16} />
-                        {entry.uploading ? "enviando…" : "tirar foto"}
-                      </label>
-                    )}
-                    <input
-                      id={`photo-${p.id}`}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      style={{ display: "none" }}
-                      disabled={entry.uploading}
-                      onChange={(e) => handlePhotoSelect(p.id, e.target.files[0])}
-                    />
-                    {entry.photoUrl && (
-                      <button
-                        onClick={() => updateEntry(p.id, { photoUrl: null })}
-                        style={clearBtnStyle}
-                        title="remover foto"
-                      >
-                        <X size={14} color="var(--tr-ink-soft)" />
-                      </button>
-                    )}
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="estimativa"
-                      value={entry.quantity}
-                      onChange={(e) => updateEntry(p.id, { quantity: e.target.value })}
-                      style={estimateInputStyle}
-                      title="número estimado (opcional)"
-                    />
-                  </>
+                {entry.photoUrl ? (
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <img src={entry.photoUrl} alt="" style={photoPreviewStyle} />
+                    <label htmlFor={`photo-${p.id}`} style={retakeBadgeStyle} title="trocar foto">
+                      <Camera size={12} color="#fff" />
+                    </label>
+                  </div>
                 ) : (
-                  <>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="0"
-                      value={entry.quantity}
-                      onChange={(e) => updateEntry(p.id, { quantity: e.target.value })}
-                      style={quantityInputStyle}
-                    />
-                    {entry.quantity !== "" && (
-                      <button
-                        onClick={() => updateEntry(p.id, { quantity: "" })}
-                        style={clearBtnStyle}
-                        title="limpar (não contar este item)"
-                      >
-                        <X size={14} color="var(--tr-ink-soft)" />
-                      </button>
-                    )}
-                  </>
+                  <label htmlFor={`photo-${p.id}`} style={{ ...photoBtnStyle, opacity: entry.uploading ? 0.6 : 1 }}>
+                    <Camera size={16} />
+                    {entry.uploading ? "enviando…" : "foto"}
+                  </label>
+                )}
+                <input
+                  id={`photo-${p.id}`}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: "none" }}
+                  disabled={entry.uploading}
+                  onChange={(e) => handlePhotoSelect(p.id, e.target.files[0])}
+                />
+                {entry.photoUrl && (
+                  <button
+                    onClick={() => updateEntry(p.id, { photoUrl: null })}
+                    style={clearBtnStyle}
+                    title="remover foto"
+                  >
+                    <X size={14} color="var(--tr-ink-soft)" />
+                  </button>
+                )}
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="0"
+                  value={entry.quantity}
+                  onChange={(e) => updateEntry(p.id, { quantity: e.target.value })}
+                  style={quantityInputStyle}
+                />
+                {entry.quantity !== "" && (
+                  <button
+                    onClick={() => updateEntry(p.id, { quantity: "" })}
+                    style={clearBtnStyle}
+                    title="limpar (não contar este item)"
+                  >
+                    <X size={14} color="var(--tr-ink-soft)" />
+                  </button>
                 )}
               </div>
 
@@ -375,18 +336,6 @@ const quantityInputStyle = {
   borderRadius: 8,
   border: "1px solid var(--tr-line)",
   fontSize: 14,
-  textAlign: "center",
-  outline: "none",
-  flexShrink: 0,
-};
-
-const estimateInputStyle = {
-  width: 56,
-  height: 40,
-  padding: "0 8px",
-  borderRadius: 8,
-  border: "1px dashed var(--tr-line)",
-  fontSize: 13,
   textAlign: "center",
   outline: "none",
   flexShrink: 0,

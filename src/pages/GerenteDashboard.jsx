@@ -3,17 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { attachSignedPhotoUrls } from "../lib/countPhotos";
-import { LogOut, Package, Users, History, MessageCircle, Camera } from "lucide-react";
+import { LogOut, Package, Users, History, MessageCircle, Camera, ShoppingCart, Check } from "lucide-react";
 
 const CATEGORY_ORDER = ["pizza-esfiha", "lanches", "bebidas", "diversos", "produtos-limpeza"];
 
 export default function GerenteDashboard() {
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [latestByProduct, setLatestByProduct] = useState({});
+  const [replenishments, setReplenishments] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -22,6 +23,10 @@ export default function GerenteDashboard() {
   const [onlyMarketItems, setOnlyMarketItems] = useState(false);
   const [openNoteId, setOpenNoteId] = useState(null);
   const [openPhotoId, setOpenPhotoId] = useState(null);
+  const [replenishmentTarget, setReplenishmentTarget] = useState(null);
+  const [replenishmentNote, setReplenishmentNote] = useState("");
+  const [receivedQuantity, setReceivedQuantity] = useState("");
+  const [savingReplenishment, setSavingReplenishment] = useState(false);
 
   useEffect(() => {
     load();
@@ -36,6 +41,7 @@ export default function GerenteDashboard() {
         { data: catData, error: catError },
         { data: prodData, error: prodError },
         { data: countsData, error: countsError },
+        { data: replenishmentData, error: replenishmentError },
       ] = await Promise.all([
       supabase.from("categories").select("id, name, slug"),
       supabase
@@ -47,11 +53,12 @@ export default function GerenteDashboard() {
         .from("counts")
         .select("id, product_id, quantity, photo_path, note, counted_at, profiles!counts_counted_by_fkey(name)")
         .order("counted_at", { ascending: false }),
+      supabase.from("replenishments").select("product_id, status, note, ordered_at, ordered_by").eq("status", "ordered"),
       ]);
 
-      const failedRequest = catError || prodError || countsError;
+      const failedRequest = catError || prodError || countsError || replenishmentError;
       if (failedRequest) {
-        setError(`Não foi possível carregar o painel: ${failedRequest.message}`);
+        setError("Não foi possível carregar o painel.");
         return;
       }
 
@@ -66,11 +73,51 @@ export default function GerenteDashboard() {
       setCategories(sortedCats);
       setProducts(prodData);
       setLatestByProduct(latest);
+      setReplenishments(Object.fromEntries((replenishmentData || []).map((item) => [item.product_id, item])));
     } catch (unexpectedError) {
-      setError(`Não foi possível carregar o painel: ${unexpectedError.message}`);
+      setError("Não foi possível carregar o painel.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function openReplenishment(product) {
+    setReplenishmentTarget(product);
+    setReplenishmentNote(replenishments[product.id]?.note || "");
+    setReceivedQuantity("");
+  }
+
+  async function saveReplenishment(status) {
+    if (!replenishmentTarget || !profile) return;
+    if (status === "received" && (!receivedQuantity || Number(receivedQuantity) < 0)) return;
+    setSavingReplenishment(true);
+
+    if (status === "received") {
+      const { error: receivedError } = await supabase.rpc("receive_replenishment", {
+        p_product_id: replenishmentTarget.id,
+        p_quantity: Number(receivedQuantity),
+        p_note: replenishmentNote.trim() || null,
+      });
+      if (receivedError) {
+        setError("Não foi possível confirmar o recebimento: " + receivedError.message);
+        setSavingReplenishment(false);
+        return;
+      }
+      setReplenishmentTarget(null);
+      await load();
+      setSavingReplenishment(false);
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const payload = { product_id: replenishmentTarget.id, status, note: replenishmentNote.trim() || null, ordered_by: profile.id, ordered_at: now, received_by: null, received_at: null, received_quantity: null };
+    const { error: replenishmentError } = await supabase.from("replenishments").upsert(payload);
+    if (replenishmentError) setError("Não foi possível salvar a reposição: " + replenishmentError.message);
+    else {
+      setReplenishmentTarget(null);
+      await load();
+    }
+    setSavingReplenishment(false);
   }
 
   function productsForCategory(categoryId) {
@@ -185,6 +232,7 @@ export default function GerenteDashboard() {
                   const noteOpen = latest && openNoteId === latest.id;
                   const hasPhoto = latest && latest.photoPreviewUrl;
                   const photoOpen = latest && openPhotoId === latest.id;
+                  const replenishment = replenishments[p.id];
 
                   return (
                     <div key={p.id} style={rowCardStyle}>
@@ -216,6 +264,11 @@ export default function GerenteDashboard() {
                             >
                               <Camera size={14} />
                               ver foto
+                            </button>
+                          )}
+                          {belowMin && (
+                            <button onClick={() => openReplenishment(p)} style={replenishment ? orderedBtnStyle : replenishBtnStyle}>
+                              <ShoppingCart size={14} /> {replenishment ? "aguardando" : "repor"}
                             </button>
                           )}
                           <div
@@ -267,6 +320,28 @@ export default function GerenteDashboard() {
             </div>
           )}
       </div>
+      {replenishmentTarget && (
+        <div style={overlayStyle} onClick={() => !savingReplenishment && setReplenishmentTarget(null)}>
+          <div style={confirmCardStyle} onClick={(event) => event.stopPropagation()}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 16, marginBottom: 8 }}>Repor {replenishmentTarget.name}</div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--tr-ink-soft)", marginBottom: 14 }}>
+              Marque como comprado para evitar compras duplicadas. Ao receber, informe a quantidade atual no estoque.
+            </div>
+            <textarea value={replenishmentNote} onChange={(event) => setReplenishmentNote(event.target.value)} placeholder="observação (opcional)" rows={2} style={modalInputStyle} />
+            {replenishments[replenishmentTarget.id] && (
+              <input type="number" min="0" step="any" value={receivedQuantity} onChange={(event) => setReceivedQuantity(event.target.value)} placeholder={`quantidade atual (${replenishmentTarget.unit})`} style={modalInputStyle} />
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button onClick={() => setReplenishmentTarget(null)} disabled={savingReplenishment} style={cancelBtnStyle}>cancelar</button>
+              {replenishments[replenishmentTarget.id] ? (
+                <button onClick={() => saveReplenishment("received")} disabled={savingReplenishment || receivedQuantity === ""} style={receivedBtnStyle}><Check size={15} /> recebido</button>
+              ) : (
+                <button onClick={() => saveReplenishment("ordered")} disabled={savingReplenishment} style={replenishBtnStyle}><ShoppingCart size={15} /> comprado</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -356,6 +431,14 @@ const photoToggleBtnStyle = {
   color: "var(--tr-black)",
   whiteSpace: "nowrap",
 };
+
+const replenishBtnStyle = { ...photoToggleBtnStyle, color: "var(--tr-orange)", borderColor: "var(--tr-orange)" };
+const orderedBtnStyle = { ...photoToggleBtnStyle, color: "var(--tr-ink-soft)", background: "var(--tr-paper)" };
+const receivedBtnStyle = { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 0", borderRadius: 8, border: "none", background: "var(--tr-ok)", color: "#fff", fontFamily: "var(--font-body)", fontWeight: 600, cursor: "pointer" };
+const cancelBtnStyle = { ...receivedBtnStyle, background: "#fff", color: "var(--tr-black)", border: "1px solid var(--tr-line)" };
+const overlayStyle = { position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(0,0,0,.5)" };
+const confirmCardStyle = { width: "100%", maxWidth: 360, padding: 20, borderRadius: 12, background: "#fff" };
+const modalInputStyle = { width: "100%", boxSizing: "border-box", padding: "9px 10px", marginBottom: 8, border: "1px solid var(--tr-line)", borderRadius: 8, fontFamily: "var(--font-body)", resize: "vertical" };
 
 const photoBoxStyle = {
   marginTop: 8,

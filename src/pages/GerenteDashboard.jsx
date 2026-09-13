@@ -31,11 +31,12 @@ export default function GerenteDashboard() {
     setLoading(true);
     setError("");
 
-    const [
-      { data: catData, error: catError },
-      { data: prodData, error: prodError },
-      { data: countsData, error: countsError },
-    ] = await Promise.all([
+    try {
+      const [
+        { data: catData, error: catError },
+        { data: prodData, error: prodError },
+        { data: countsData, error: countsError },
+      ] = await Promise.all([
       supabase.from("categories").select("id, name, slug"),
       supabase
         .from("products")
@@ -46,11 +47,14 @@ export default function GerenteDashboard() {
         .from("counts")
         .select("id, product_id, quantity, photo_path, note, counted_at, profiles(name)")
         .order("counted_at", { ascending: false }),
-    ]);
+      ]);
 
-    if (catError || prodError || countsError) {
-      setError("Não foi possível carregar o painel.");
-    } else {
+      const failedRequest = catError || prodError || countsError;
+      if (failedRequest) {
+        setError(`Não foi possível carregar o painel: ${failedRequest.message}`);
+        return;
+      }
+
       const sortedCats = [...catData].sort(
         (a, b) => CATEGORY_ORDER.indexOf(a.slug) - CATEGORY_ORDER.indexOf(b.slug)
       );
@@ -62,8 +66,11 @@ export default function GerenteDashboard() {
       setCategories(sortedCats);
       setProducts(prodData);
       setLatestByProduct(latest);
+    } catch (unexpectedError) {
+      setError(`Não foi possível carregar o painel: ${unexpectedError.message}`);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   function productsForCategory(categoryId) {

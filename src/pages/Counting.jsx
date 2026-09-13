@@ -75,7 +75,7 @@ export default function Counting() {
 
       const { data: todayCounts } = await supabase
         .from("counts")
-        .select("product_id, quantity, photo_path, counted_at, profiles(name)")
+        .select("product_id, quantity, photo_path, counted_at, profiles!counts_counted_by_fkey(name)")
         .in("product_id", productIds)
         .gte("counted_at", todayStart.toISOString())
         .order("counted_at", { ascending: false });

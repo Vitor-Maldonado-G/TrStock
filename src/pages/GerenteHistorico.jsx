@@ -77,7 +77,7 @@ export default function GerenteHistorico() {
 
     let query = supabase
       .from("counts")
-      .select("id, quantity, note, counted_at, profiles(name), products(name, unit, product_categories(category_id))")
+      .select("id, quantity, note, counted_at, profiles!counts_counted_by_fkey(name), products(name, unit, product_categories(category_id))")
       .is("voided_at", null)
       .order("counted_at", { ascending: false })
       .limit(500);

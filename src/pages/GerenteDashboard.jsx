@@ -45,7 +45,7 @@ export default function GerenteDashboard() {
         .order("name"),
       supabase
         .from("counts")
-        .select("id, product_id, quantity, photo_path, note, counted_at, profiles(name)")
+        .select("id, product_id, quantity, photo_path, note, counted_at, profiles!counts_counted_by_fkey(name)")
         .order("counted_at", { ascending: false }),
       ]);
 

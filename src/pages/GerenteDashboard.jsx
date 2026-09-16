@@ -237,7 +237,7 @@ export default function GerenteDashboard() {
 
                   return (
                     <div key={p.id} style={rowCardStyle}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 15 }}>{p.name}</div>
                           <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--tr-ink-soft)" }}>
@@ -247,7 +247,7 @@ export default function GerenteDashboard() {
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", ...(belowMin ? { width: "100%" } : {}) }}>
                           {hasNote && (
                             <button
                               onClick={() => setOpenNoteId(noteOpen ? null : latest.id)}

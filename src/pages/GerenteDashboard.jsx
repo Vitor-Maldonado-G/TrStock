@@ -247,7 +247,7 @@ export default function GerenteDashboard() {
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", ...(belowMin ? { width: "100%" } : {}) }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
                           {hasNote && (
                             <button
                               onClick={() => setOpenNoteId(noteOpen ? null : latest.id)}
